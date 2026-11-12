@@ -1,0 +1,19 @@
+node_modules
+.output
+.wxt
+stats.html
+stats-*.json
+web-ext.config.ts
+
+# Test artifacts
+playwright-report
+test-results
+blob-report
+coverage
+
+# Editors and OS
+.DS_Store
+.idea
+*.log
+.env
+.env.*
