@@ -6,7 +6,7 @@ import { snapshotFromDocument } from '@/core/tracking';
  * a later simulated drop can satisfy the condition in tests; falls back to availability-change.
  */
 export function buildTrackInput(context: SelectedContext, doc: Document): ActionInputFor<'track'> {
-  const snapshot = snapshotFromDocument(doc, context.source.url);
+  const snapshot = snapshotFromDocument(doc, context.source.url, new Date().toISOString(), context);
   let condition: TrackCondition = { kind: 'availability-change' };
 
   if (snapshot?.price) {

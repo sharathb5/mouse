@@ -2,26 +2,17 @@ import { browser } from 'wxt/browser';
 import { defineBackground } from 'wxt/utils/define-background';
 import { storage } from 'wxt/utils/storage';
 import { registerActionRunPort } from '@/background/action-runner';
-import { OPENROUTER_HOST_PERMISSION } from '@/background/model';
-import {
-  createBackgroundMessageHandler,
-  createTaskOrchestrator,
-  TASK_POLL_ALARM,
-} from '@/background/tasks';
+import { createUnifiedBackgroundHandler } from '@/background/message-router';
+import { createTaskOrchestrator, TASK_POLL_ALARM } from '@/background/tasks';
 import { startTrackingService } from '@/background/tracking';
-import {
-  DEFAULT_SETTINGS,
-  ModelBackgroundMessageSchema,
-  OPEN_MENU_COMMAND,
-  type ContentScriptMessage,
-  type ModelProviderSettings,
-} from '@/core/contracts';
+import { DEFAULT_SETTINGS, OPEN_MENU_COMMAND, type ContentScriptMessage } from '@/core/contracts';
 import { setActiveTaskBadge } from '@/platform/badge';
 import { loadDestinationsConfig, saveDestinationsConfig } from '@/platform/destinations-store';
-import { clearModelApiKey, hasModelApiKey, saveModelApiKey } from '@/platform/model-secrets';
 import { loadSettings, saveSettings } from '@/platform/settings-store';
 
 const orchestrator = createTaskOrchestrator();
+// Share B's TaskStore so Track monitoring and agent handoffs hit the same inbox.
+const tracking = startTrackingService({ tasks: orchestrator.store });
 
 async function onInstalled(): Promise<void> {
   // Only seed defaults when nothing is stored. A blind load→save race can overwrite
@@ -46,19 +37,8 @@ async function openMenuInTab(tabId: number): Promise<void> {
   }
 }
 
-async function modelSettingsResponse(): Promise<ModelProviderSettings> {
-  const settings = await loadSettings();
-  const apiKeyConfigured = settings.model.providerId === 'mock' ? true : await hasModelApiKey();
-  return {
-    providerId: settings.model.providerId,
-    modelId: settings.model.modelId,
-    apiKeyConfigured,
-  };
-}
-
 export default defineBackground(() => {
   registerActionRunPort();
-  startTrackingService();
 
   browser.runtime.onInstalled.addListener(() => {
     void onInstalled();
@@ -68,37 +48,7 @@ export default defineBackground(() => {
     void orchestrator.start();
   });
 
-  browser.runtime.onMessage.addListener(createBackgroundMessageHandler(orchestrator));
-
-  browser.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-    const parsed = ModelBackgroundMessageSchema.safeParse(message);
-    if (!parsed.success) return undefined;
-
-    void (async () => {
-      switch (parsed.data.type) {
-        case 'agentic-mouse/model-settings':
-          sendResponse({ ok: true, settings: await modelSettingsResponse() });
-          break;
-        case 'agentic-mouse/set-model-api-key':
-          await saveModelApiKey(parsed.data.apiKey);
-          sendResponse({ ok: true, settings: await modelSettingsResponse() });
-          break;
-        case 'agentic-mouse/clear-model-api-key':
-          await clearModelApiKey();
-          sendResponse({ ok: true, settings: await modelSettingsResponse() });
-          break;
-        case 'agentic-mouse/request-openrouter-permission': {
-          const granted = await browser.permissions.request({
-            origins: [OPENROUTER_HOST_PERMISSION],
-          });
-          sendResponse({ ok: true, granted });
-          break;
-        }
-      }
-    })();
-
-    return true;
-  });
+  browser.runtime.onMessage.addListener(createUnifiedBackgroundHandler({ orchestrator, tracking }));
 
   browser.alarms.onAlarm.addListener((alarm) => {
     if (alarm.name === TASK_POLL_ALARM) void orchestrator.pollActiveTasks();

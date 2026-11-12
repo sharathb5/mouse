@@ -137,6 +137,17 @@ test('inbox renders seeded task states and walking cat modes', async ({
   await expect(popup.locator('[data-status="monitoring"]')).toBeVisible();
   await expect(popup.locator('[data-status="completed"]')).toBeVisible();
 
+  await expect(popup.locator('[data-inbox-kind="agent"]')).toBeVisible();
+  await expect(popup.locator('[data-inbox-kind="track"]')).toBeVisible();
+  await expect(popup.locator('[data-action-id="track"] [data-testid="inbox-kind"]')).toHaveText(
+    'Track',
+  );
+  await expect(
+    popup.locator('[data-action-id="track"] [data-testid="inbox-detail"]'),
+  ).toContainText(/price|availability|Alert/i);
+  await expect(popup.getByRole('button', { name: 'Open tracked page' })).toBeVisible();
+  await expect(popup.getByRole('button', { name: 'Stop tracking' })).toBeVisible();
+
   await expect(
     popup.locator('[data-status="running"] [data-testid="walking-cat"]'),
   ).toHaveAttribute('data-mode', 'determinate');

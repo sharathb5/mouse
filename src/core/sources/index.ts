@@ -8,6 +8,7 @@ export type { SourceAdapter } from './types';
 export { jsonLdAdapter } from './json-ld';
 export { microdataAdapter } from './microdata';
 export { openGraphAdapter } from './open-graph';
+export { filterItemsBySelectedContext, selectedContextHaystack } from './filter-by-context';
 
 export const DEFAULT_SOURCE_ADAPTERS: readonly SourceAdapter[] = [
   jsonLdAdapter,

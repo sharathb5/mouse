@@ -1,7 +1,7 @@
 import { browser } from 'wxt/browser';
 import { useEffect, useState } from 'react';
 import { BackgroundResponseSchema, type BackgroundRequest, type Task } from '@/core/contracts';
-import { sortTasksForInbox, taskTitle } from '@/core/tasks';
+import { inboxKind, inboxKindLabel, sortTasksForInbox, taskDetail, taskTitle } from '@/core/tasks';
 import { WalkingCat } from './WalkingCat';
 
 async function send(request: BackgroundRequest) {
@@ -74,72 +74,92 @@ export function InboxPanel() {
           }}
         />
         <h2>No tasks yet</h2>
-        <p>
-          Work you delegate to agents, comparisons, and trackers will show up here with live
-          progress.
-        </p>
+        <p>Agent handoffs and Track monitors show up here together with live progress.</p>
       </div>
     );
   }
 
   return (
     <ul className="inbox-list" data-testid="inbox-list">
-      {tasks.map((task) => (
-        <li
-          key={task.request.id}
-          className="inbox-item"
-          data-testid="inbox-item"
-          data-status={task.state.status}
-          data-task-id={task.request.id}
-        >
-          <div className="inbox-item-header">
-            <strong>{taskTitle(task)}</strong>
-            <span className="inbox-status">{task.state.status}</span>
-          </div>
-          <WalkingCat state={task.state} />
-          {task.state.status === 'running' && task.state.updates[task.state.updates.length - 1] && (
-            <p className="inbox-update">
-              {task.state.updates[task.state.updates.length - 1]?.message}
-            </p>
-          )}
-          {task.state.status === 'failed' && (
-            <p className="inbox-update error">{task.state.error.message}</p>
-          )}
-          {task.external?.url && (
-            <button
-              type="button"
-              className="link-btn"
-              onClick={() => void runCommand(task.request.id, 'open-result')}
-            >
-              Open agent run
-            </button>
-          )}
-          <div className="inbox-controls">
-            {(task.state.status === 'queued' || task.state.status === 'running') && (
-              <button type="button" onClick={() => void runCommand(task.request.id, 'cancel')}>
-                Cancel
+      {tasks.map((task) => {
+        const kind = inboxKind(task);
+        const detail = taskDetail(task);
+        const actionId = task.request.input.actionId;
+        return (
+          <li
+            key={task.request.id}
+            className="inbox-item"
+            data-testid="inbox-item"
+            data-status={task.state.status}
+            data-task-id={task.request.id}
+            data-action-id={actionId}
+            data-inbox-kind={kind}
+          >
+            <div className="inbox-item-header">
+              <div className="inbox-item-title">
+                <span className="inbox-kind" data-testid="inbox-kind">
+                  {inboxKindLabel(kind)}
+                </span>
+                <strong>{taskTitle(task)}</strong>
+              </div>
+              <span className="inbox-status">{task.state.status}</span>
+            </div>
+            {detail && (
+              <p className="inbox-detail" data-testid="inbox-detail">
+                {detail}
+              </p>
+            )}
+            <WalkingCat state={task.state} />
+            {task.state.status === 'running' &&
+              task.state.updates[task.state.updates.length - 1] && (
+                <p className="inbox-update">
+                  {task.state.updates[task.state.updates.length - 1]?.message}
+                </p>
+              )}
+            {task.state.status === 'failed' && (
+              <p className="inbox-update error">{task.state.error.message}</p>
+            )}
+            {(actionId === 'track' || task.external?.url !== undefined) && (
+              <button
+                type="button"
+                className="link-btn"
+                onClick={() => void runCommand(task.request.id, 'open-result')}
+              >
+                {actionId === 'track' ? 'Open tracked page' : 'Open agent run'}
               </button>
             )}
-            {task.state.status === 'monitoring' && !task.state.paused && (
-              <button type="button" onClick={() => void runCommand(task.request.id, 'pause')}>
-                Pause
-              </button>
-            )}
-            {task.state.status === 'monitoring' && task.state.paused && (
-              <button type="button" onClick={() => void runCommand(task.request.id, 'resume')}>
-                Resume
-              </button>
-            )}
-            {(task.state.status === 'completed' ||
-              task.state.status === 'failed' ||
-              task.state.status === 'cancelled') && (
-              <button type="button" onClick={() => void runCommand(task.request.id, 'dismiss')}>
-                Dismiss
-              </button>
-            )}
-          </div>
-        </li>
-      ))}
+            <div className="inbox-controls">
+              {(task.state.status === 'queued' || task.state.status === 'running') && (
+                <button type="button" onClick={() => void runCommand(task.request.id, 'cancel')}>
+                  Cancel
+                </button>
+              )}
+              {task.state.status === 'monitoring' && !task.state.paused && (
+                <button type="button" onClick={() => void runCommand(task.request.id, 'pause')}>
+                  Pause
+                </button>
+              )}
+              {task.state.status === 'monitoring' && task.state.paused && (
+                <button type="button" onClick={() => void runCommand(task.request.id, 'resume')}>
+                  Resume
+                </button>
+              )}
+              {task.state.status === 'monitoring' && actionId === 'track' && (
+                <button type="button" onClick={() => void runCommand(task.request.id, 'cancel')}>
+                  Stop tracking
+                </button>
+              )}
+              {(task.state.status === 'completed' ||
+                task.state.status === 'failed' ||
+                task.state.status === 'cancelled') && (
+                <button type="button" onClick={() => void runCommand(task.request.id, 'dismiss')}>
+                  Dismiss
+                </button>
+              )}
+            </div>
+          </li>
+        );
+      })}
     </ul>
   );
 }

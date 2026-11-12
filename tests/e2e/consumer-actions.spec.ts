@@ -46,7 +46,8 @@ test.describe('consumer actions', () => {
     await pinConsumerActions(extensionId, context);
     await openFixture(serviceWorker, page, 'products.html');
 
-    await rightClick(page, page.locator('#lamp'), { shift: true });
+    // Page-scoped target (heading) keeps the full listing extract.
+    await rightClick(page, page.locator('h1'), { shift: true });
     await expect(menu(page)).toBeVisible();
     await menu(page)
       .getByRole('menuitem', { name: /Extract/ })
@@ -66,6 +67,30 @@ test.describe('consumer actions', () => {
     expect(download.suggestedFilename()).toMatch(/\.csv$/i);
     const path = await download.path();
     expect(path).toBeTruthy();
+  });
+
+  test('Extract on an outlined product scopes rows to that selection', async ({
+    context,
+    extensionId,
+    serviceWorker,
+    page,
+  }) => {
+    await pinConsumerActions(extensionId, context);
+    await openFixture(serviceWorker, page, 'products.html');
+
+    await rightClick(page, page.locator('#lamp'), { shift: true });
+    await expect(menu(page)).toBeVisible();
+    await menu(page)
+      .getByRole('menuitem', { name: /Extract/ })
+      .click();
+
+    const result = page.getByTestId('agentic-mouse-result');
+    await expect(result).toBeVisible();
+    await expect(result).toHaveAttribute('data-result-kind', 'table');
+    const table = page.getByTestId('extract-table');
+    await expect(table.getByRole('row')).toHaveCount(2); // header + outlined lamp
+    await expect(table).toContainText('Cedar Desk Lamp');
+    await expect(table).not.toContainText('Oak Monitor Stand');
   });
 
   test('Compare shows at least two grounded items on a product listing', async ({

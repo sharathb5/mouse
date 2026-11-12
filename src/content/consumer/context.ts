@@ -50,8 +50,8 @@ function classifyFromItems(url: string): PageClassification {
 }
 
 /**
- * Minimal SelectedContext builder for Workstream C until Workstream A's extraction lands.
- * Uses page-level target and local source adapters for classification hints only.
+ * Page-scoped SelectedContext fallback when no invocation/outline is available
+ * (e.g. background-only paths). Menu actions should use `resolveActionContext`.
  */
 export function buildPageSelectedContext(): SelectedContext {
   const url = location.href;

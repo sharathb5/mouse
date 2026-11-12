@@ -37,9 +37,9 @@ flowchart LR
 | Positioning       | `src/content/positioning.ts`                   | Pure: viewport-aware placement (flip + clamp).                                       |
 | Invocation        | `src/content/invocation.ts`                    | Cheap snapshot of what was clicked (`MenuInvocation`). Seam for Workstream A.        |
 | Menu UI           | `src/content/menu/AgenticMenu.tsx`, `menu.css` | Renders resolved actions; keyboard nav; "coming soon" notices.                       |
-| Background        | `src/entrypoints/background.ts`                | Install defaults, badge, task orchestration, Cursor polling, fallback shortcut.      |
-| Popup             | `src/entrypoints/popup/*`, `src/popup/*`       | Toggle, page status, Inbox (tasks + walking cat), Agents settings, pinned actions.   |
-| Tasks             | `src/core/tasks/*`, `src/background/tasks/*`   | Pure state machine + persisted TaskStore, alarms, completion notifications.          |
+| Background        | `src/entrypoints/background.ts`                | Install defaults, badge, unified message router, task orchestration, Track service.  |
+| Popup             | `src/entrypoints/popup/*`, `src/popup/*`       | Toggle, page status, Inbox (agent + Track), Agents settings, pinned actions.         |
+| Tasks             | `src/core/tasks/*`, `src/background/tasks/*`   | Pure state machine + shared TaskStore (agents + Track), alarms, notifications.       |
 | Destinations      | `src/background/destinations/*`                | Cursor Cloud Agent adapter, prefill-link, clipboard handoff.                         |
 | Contracts         | `src/core/contracts/*`                         | Zod schemas + inferred types for every cross-module data shape.                      |
 | Action registry   | `src/core/actions/*`                           | Catalog of action definitions; executors register to become available.               |
@@ -159,6 +159,11 @@ Settings are stored in `chrome.storage.local` under `settings` via WXT's storage
 repaired field by field so a bad value never wipes other preferences. `chrome.storage.local`
 is chosen over `sync` for now to keep behavior deterministic in tests; moving to `sync` is a
 one-line change once quota behavior is considered.
+
+Tasks (agent handoffs and Track monitors) share one Workstream B `TaskStore`
+(`local:tasks`). Track metadata lives in a separate `TrackerStore`; the popup Inbox reads
+only the shared TaskStore. Background `runtime.onMessage` traffic is routed through a single
+handler (`src/background/message-router.ts`) for agent, model-provider, and Track messages.
 
 ## Security model
 
