@@ -1,5 +1,6 @@
 import { defineContentScript } from 'wxt/utils/define-content-script';
 import { createMenuController } from '@/content/menu-controller';
+import '@/actions/send-to-agent/send.css';
 import '@/content/menu/menu.css';
 
 export default defineContentScript({

@@ -152,7 +152,7 @@ test('settings persist after the extension reloads', async ({}, testInfo) => {
   }
 });
 
-test('popup shows the placeholder inbox and page status', async ({
+test('popup shows the empty inbox and page status', async ({
   context,
   page,
   serviceWorker,
@@ -163,10 +163,7 @@ test('popup shows the placeholder inbox and page status', async ({
   const popup = await openPopup(context, extensionId, `?tabId=${tabId}`);
 
   await expect(popup.getByTestId('tab-status')).toHaveAttribute('data-state', 'active');
-  await expect(popup.getByTestId('inbox-placeholder')).toContainText('No tasks yet');
-  await expect(popup.getByTestId('inbox-placeholder')).toContainText(
-    'Task execution is not available in this build',
-  );
+  await expect(popup.getByTestId('inbox-empty')).toContainText('No tasks yet');
 
   await popup.getByRole('tab', { name: 'Settings' }).click();
   await expect(popup.getByTestId('fallback-shortcut')).toBeVisible();

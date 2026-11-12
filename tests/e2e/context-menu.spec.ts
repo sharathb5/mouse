@@ -22,10 +22,9 @@ test.describe('context menu gesture', () => {
     await expect(menu(page)).toBeVisible();
     const items = menu(page).getByRole('menuitem');
     await expect(items).toHaveText([/Explain This/, /Select Content/, /Send to Agent/]);
-    for (const item of await items.all()) {
-      await expect(item).toHaveAttribute('aria-disabled', 'true');
-      await expect(item).toHaveAttribute('data-availability', 'coming-soon');
-    }
+    await expect(items.nth(0)).toHaveAttribute('data-availability', 'coming-soon');
+    await expect(items.nth(1)).toHaveAttribute('data-availability', 'coming-soon');
+    await expect(items.nth(2)).toHaveAttribute('data-availability', 'available');
     await expect(page.getByTestId('agentic-mouse-target')).toHaveText('Page content');
 
     // The page never saw the event: the extension consumed it.

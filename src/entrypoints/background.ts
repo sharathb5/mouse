@@ -1,14 +1,22 @@
 import { browser } from 'wxt/browser';
 import { defineBackground } from 'wxt/utils/define-background';
+import {
+  createBackgroundMessageHandler,
+  createTaskOrchestrator,
+  TASK_POLL_ALARM,
+} from '@/background/tasks';
 import { OPEN_MENU_COMMAND, type ContentScriptMessage } from '@/core/contracts';
 import { setActiveTaskBadge } from '@/platform/badge';
+import { loadDestinationsConfig, saveDestinationsConfig } from '@/platform/destinations-store';
 import { loadSettings, saveSettings } from '@/platform/settings-store';
 
+const orchestrator = createTaskOrchestrator();
+
 async function onInstalled(): Promise<void> {
-  // Persist normalized settings so every surface reads the same explicit state.
   await saveSettings(await loadSettings());
-  // No task backend yet (Workstream B); the badge stays empty rather than faking counts.
+  await saveDestinationsConfig(await loadDestinationsConfig());
   await setActiveTaskBadge(0);
+  await orchestrator.start();
 }
 
 async function openMenuInTab(tabId: number): Promise<void> {
@@ -27,10 +35,19 @@ export default defineBackground(() => {
   });
 
   browser.runtime.onStartup.addListener(() => {
-    void setActiveTaskBadge(0);
+    void orchestrator.start();
+  });
+
+  browser.runtime.onMessage.addListener(createBackgroundMessageHandler(orchestrator));
+
+  browser.alarms.onAlarm.addListener((alarm) => {
+    if (alarm.name === TASK_POLL_ALARM) void orchestrator.pollActiveTasks();
   });
 
   browser.commands.onCommand.addListener((command, tab) => {
     if (command === OPEN_MENU_COMMAND && tab?.id !== undefined) void openMenuInTab(tab.id);
   });
+
+  // Cold start: ensure polling + badge even when onInstalled already fired earlier.
+  void orchestrator.start();
 });

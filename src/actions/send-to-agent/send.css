@@ -1,0 +1,103 @@
+.am-send {
+  position: fixed;
+  z-index: 2147483647;
+  top: 16px;
+  right: 16px;
+  width: min(360px, calc(100vw - 32px));
+  padding: 14px;
+  border: 1px solid rgba(28, 27, 25, 0.16);
+  border-radius: 12px;
+  background: #fffdf8;
+  color: #1c1b19;
+  box-shadow: 0 12px 40px rgba(28, 27, 25, 0.18);
+  font:
+    13px/1.4 ui-sans-serif,
+    system-ui,
+    sans-serif;
+}
+
+.am-send-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.am-send-header h2 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 650;
+}
+
+.am-send-close {
+  border: none;
+  background: transparent;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  color: inherit;
+}
+
+.am-send-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+
+.am-send-field span {
+  color: #6b6760;
+  font-size: 12px;
+}
+
+.am-send-field select,
+.am-send-field textarea {
+  font: inherit;
+  color: inherit;
+  border: 1px solid rgba(28, 27, 25, 0.16);
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: #fff;
+}
+
+.am-send-muted {
+  margin: 0 0 10px;
+  color: #6b6760;
+  font-size: 12px;
+}
+
+.am-send-trust {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  margin-bottom: 10px;
+  font-size: 12px;
+}
+
+.am-send-error {
+  margin: 0 0 10px;
+  color: #9a1f1f;
+  font-size: 12px;
+}
+
+.am-send-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.am-send-actions button {
+  font: inherit;
+  border: 1px solid rgba(28, 27, 25, 0.16);
+  border-radius: 8px;
+  padding: 7px 12px;
+  background: #fff;
+  cursor: pointer;
+}
+
+.am-send-primary {
+  background: #f2b705 !important;
+  border-color: #b98a00 !important;
+  font-weight: 600;
+}

@@ -5,11 +5,17 @@ import {
   createShadowRootUi,
   type ShadowRootContentScriptUi,
 } from 'wxt/utils/content-script-ui/shadow-root';
+import {
+  contextFromInvocation,
+  sendToAgentExecutor,
+  SendToAgentDialog,
+} from '@/actions/send-to-agent';
 import { createActionRegistry, type ActionRegistry, type ResolvedAction } from '@/core/actions';
 import {
   ContentScriptMessageSchema,
   type OpenMenuResponse,
   type PingResponse,
+  type SelectedContext,
   type Settings,
 } from '@/core/contracts';
 import { createMetricsRecorder } from '@/core/metrics';
@@ -23,11 +29,22 @@ export const MENU_HOST_TAG = 'agentic-mouse-ui';
 
 type CloseReason = 'escape' | 'outside-click' | 'native-menu' | 'disabled' | 'viewport' | 'tab';
 
-interface OpenState {
+interface MenuOpenState {
+  kind: 'menu';
   invocation: MenuInvocation;
   restoreFocusTo: HTMLElement | null;
   listeners: AbortController;
 }
+
+interface SendOpenState {
+  kind: 'send';
+  context: SelectedContext;
+  restoreFocusTo: HTMLElement | null;
+  listeners: AbortController;
+  notice: string | null;
+}
+
+type OpenState = MenuOpenState | SendOpenState;
 
 export interface MenuController {
   start(): Promise<void>;
@@ -36,7 +53,7 @@ export interface MenuController {
 
 export function createMenuController(
   ctx: ContentScriptContext,
-  registry: ActionRegistry = createActionRegistry(),
+  registry: ActionRegistry = createActionRegistry({ executors: [sendToAgentExecutor] }),
 ): MenuController {
   const metrics = createMetricsRecorder();
   let settings: Settings | null = null;
@@ -86,42 +103,73 @@ export function createMenuController(
       quickKind: detectQuickTargetKind(input.target, window.getSelection()),
     };
 
-    if (open) {
+    if (open?.kind === 'menu') {
       open.invocation = invocation;
     } else {
+      if (open) {
+        open.listeners.abort();
+      }
       const active = document.activeElement;
       open = {
+        kind: 'menu',
         invocation,
         restoreFocusTo: active instanceof HTMLElement && active !== document.body ? active : null,
         listeners: addDismissListeners(),
       };
-      ui.mount();
+      if (!ui.mounted) ui.mount();
     }
     render();
   }
 
   function render() {
     if (!open || !ui?.mounted || !settings) return;
-    const { invocation } = open;
+    if (open.kind === 'menu') {
+      const { invocation } = open;
+      ui.mounted.render(
+        <AgenticMenu
+          key={invocation.id}
+          invocation={invocation}
+          entries={registry.resolve(settings.pinnedActionIds)}
+          onSelect={handleSelect}
+          onDismiss={() => close('tab')}
+          onPositioned={(element) => {
+            const sample = metrics.record('menu.open', performance.now() - invocation.startedAt);
+            element.dataset.openLatencyMs = sample.durationMs.toFixed(1);
+          }}
+        />,
+      );
+      return;
+    }
+
     ui.mounted.render(
-      <AgenticMenu
-        key={invocation.id}
-        invocation={invocation}
-        entries={registry.resolve(settings.pinnedActionIds)}
-        onSelect={handleSelect}
-        onDismiss={() => close('tab')}
-        onPositioned={(element) => {
-          const sample = metrics.record('menu.open', performance.now() - invocation.startedAt);
-          element.dataset.openLatencyMs = sample.durationMs.toFixed(1);
+      <SendToAgentDialog
+        context={open.context}
+        onClose={() => close('tab')}
+        onCompleted={(message) => {
+          if (open?.kind === 'send') {
+            open = { ...open, notice: message };
+          }
         }}
       />,
     );
   }
 
   function handleSelect(entry: ResolvedAction) {
-    // No executors are registered in the bootstrap build; the menu only reaches this for
-    // available actions. Workstreams wire execution through the registry.
-    console.info('[agentic-mouse] action selected', entry.definition.id);
+    if (entry.definition.id !== 'send-to-agent' || open?.kind !== 'menu') {
+      console.info('[agentic-mouse] action selected', entry.definition.id);
+      return;
+    }
+    const { invocation, restoreFocusTo, listeners } = open;
+    listeners.abort();
+    const context = contextFromInvocation(invocation);
+    open = {
+      kind: 'send',
+      context,
+      restoreFocusTo,
+      listeners: addDismissListeners(),
+      notice: null,
+    };
+    render();
   }
 
   function close(reason: CloseReason) {
