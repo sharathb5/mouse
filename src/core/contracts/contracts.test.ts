@@ -4,13 +4,18 @@ import {
   ActionInputSchema,
   ActionResultSchema,
   AgentDestinationSchema,
+  BackgroundMessageSchema,
   ContentScriptMessageSchema,
+  ExtractedItemSchema,
   PageClassificationSchema,
   SelectedContextSchema,
   TaskRequestSchema,
   TaskStateSchema,
+  TrackerSchema,
+  TrackerSnapshotSchema,
   canCreateTask,
   isActiveTask,
+  parseTrackerStoreState,
   type ActionId,
   type ActionInput,
   type SelectedContext,
@@ -239,9 +244,86 @@ describe('ContentScriptMessageSchema', () => {
   it('accepts known messages and rejects anything else', () => {
     expect(ContentScriptMessageSchema.safeParse({ type: 'agentic-mouse/ping' }).success).toBe(true);
     expect(
+      ContentScriptMessageSchema.safeParse({ type: 'agentic-mouse/extract-snapshot' }).success,
+    ).toBe(true);
+    expect(
       ContentScriptMessageSchema.safeParse({ type: 'agentic-mouse/open-menu', source: 'page' })
         .success,
     ).toBe(false);
     expect(ContentScriptMessageSchema.safeParse({ type: 'eval', code: '1' }).success).toBe(false);
+  });
+});
+
+describe('ExtractedItemSchema', () => {
+  it('requires per-value provenance', () => {
+    expect(
+      ExtractedItemSchema.safeParse({
+        id: 'p1',
+        kind: 'product',
+        name: { value: 'Lamp', sourceUrl: 'https://shop.example/p/1' },
+        fields: {
+          price: { value: 42, sourceUrl: 'https://shop.example/p/1', raw: '$42.00' },
+        },
+        adapterId: 'json-ld',
+      }).success,
+    ).toBe(true);
+    expect(
+      ExtractedItemSchema.safeParse({
+        id: 'p1',
+        kind: 'product',
+        name: { value: 'Lamp', sourceUrl: 'not-a-url' },
+        fields: {},
+        adapterId: 'json-ld',
+      }).success,
+    ).toBe(false);
+  });
+});
+
+describe('TrackerSchema', () => {
+  it('accepts a price-below tracker with an optional snapshot', () => {
+    const snapshot = TrackerSnapshotSchema.parse({
+      capturedAt: '2026-11-12T04:00:00.000Z',
+      sourceUrl: 'https://shop.example/p/1',
+      fields: {
+        price: { value: 120, sourceUrl: 'https://shop.example/p/1', raw: '$120' },
+      },
+      price: { amount: 120, currency: 'USD' },
+      availability: 'in-stock',
+    });
+    expect(
+      TrackerSchema.safeParse({
+        id: 'trk-1',
+        taskId: 'task-1',
+        url: 'https://shop.example/p/1',
+        title: 'Lamp',
+        condition: { kind: 'price-below', threshold: { amount: 100, currency: 'USD' } },
+        createdAt: '2026-11-12T04:00:00.000Z',
+        paused: false,
+        lastSnapshot: snapshot,
+        nextCheckAt: '2026-11-12T04:15:00.000Z',
+        conditionMet: false,
+      }).success,
+    ).toBe(true);
+  });
+
+  it('defensively parses a tracker store blob', () => {
+    expect(parseTrackerStoreState({ version: 1, trackers: [{ id: 'bad' }] })).toEqual({
+      version: 1,
+      trackers: [],
+    });
+  });
+});
+
+describe('BackgroundMessageSchema', () => {
+  it('accepts track lifecycle commands', () => {
+    expect(
+      BackgroundMessageSchema.safeParse({
+        type: 'agentic-mouse/track/check-now',
+        trackerId: 'trk-1',
+      }).success,
+    ).toBe(true);
+    expect(BackgroundMessageSchema.safeParse({ type: 'agentic-mouse/track/list' }).success).toBe(
+      true,
+    );
   });
 });

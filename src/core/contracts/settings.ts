@@ -1,6 +1,11 @@
 import { z } from 'zod';
 import { ActionIdSchema, type ActionId } from './action';
 import { DEFAULT_MODEL_PREFERENCES, ModelPreferencesSchema, type ModelPreferences } from './model';
+import {
+  DEFAULT_NOTIFICATION_PREFERENCES,
+  NotificationPreferencesSchema,
+  parseNotificationPreferences,
+} from './notifications';
 
 export const SETTINGS_VERSION = 1;
 export const MAX_PINNED_ACTIONS = 8;
@@ -30,6 +35,8 @@ export const SettingsSchema = z.object({
   pinnedActionIds: PinnedActionsSchema,
   /** Non-secret model preferences. API keys live in a separate storage item. */
   model: ModelPreferencesSchema,
+  /** Additive: older stored settings without this field are repaired by parseSettings. */
+  notifications: NotificationPreferencesSchema,
 });
 export type Settings = z.infer<typeof SettingsSchema>;
 
@@ -39,6 +46,7 @@ export const DEFAULT_SETTINGS: Settings = {
   triggerMode: 'shift-right-click',
   pinnedActionIds: [...DEFAULT_PINNED_ACTIONS],
   model: { ...DEFAULT_MODEL_PREFERENCES },
+  notifications: { ...DEFAULT_NOTIFICATION_PREFERENCES },
 };
 
 /** Drops unknown and duplicate ids, preserving order, and caps the list length. */
@@ -88,5 +96,6 @@ export function parseSettings(raw: unknown): Settings {
         ? [...DEFAULT_PINNED_ACTIONS]
         : normalizePinnedActionIds(record.pinnedActionIds),
     model: parseModelPreferences(record.model),
+    notifications: parseNotificationPreferences(record.notifications),
   };
 }

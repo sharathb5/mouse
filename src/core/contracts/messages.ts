@@ -1,9 +1,11 @@
 import { z } from 'zod';
+import { TrackConditionSchema } from './action';
 import { SelectedContextSchema } from './context';
 import { AgentDestinationSchema } from './destination';
 import { SavedActionSchema, TrustedRuleSchema } from './destinations-config';
 import { ModelProviderSettingsSchema } from './model';
 import { TaskApprovalSchema, TaskIdSchema, TaskSchema } from './task';
+import { TrackerSnapshotSchema } from './tracker';
 
 /** Manifest command name for the fallback keyboard shortcut (see wxt.config.ts). */
 export const OPEN_MENU_COMMAND = 'open-agentic-mouse';
@@ -18,6 +20,8 @@ export const ContentScriptMessageSchema = z.discriminatedUnion('type', [
     type: z.literal('agentic-mouse/open-menu'),
     source: z.enum(['shortcut']),
   }),
+  /** Workstream C: ask an open tab to extract a tracker snapshot from its live DOM. */
+  z.object({ type: z.literal('agentic-mouse/extract-snapshot') }),
 ]);
 export type ContentScriptMessage = z.infer<typeof ContentScriptMessageSchema>;
 
@@ -31,6 +35,12 @@ export type PingResponse = z.infer<typeof PingResponseSchema>;
 
 export const OpenMenuResponseSchema = z.object({ opened: z.boolean() });
 export type OpenMenuResponse = z.infer<typeof OpenMenuResponseSchema>;
+
+export const ExtractSnapshotResponseSchema = z.discriminatedUnion('ok', [
+  z.object({ ok: z.literal(true), snapshot: TrackerSnapshotSchema }),
+  z.object({ ok: z.literal(false), reason: z.string().min(1) }),
+]);
+export type ExtractSnapshotResponse = z.infer<typeof ExtractSnapshotResponseSchema>;
 
 export const TaskInboxCommandSchema = z.enum([
   'cancel',
@@ -145,7 +155,7 @@ export const BackgroundResponseSchema = z.discriminatedUnion('type', [
 export type BackgroundResponse = z.infer<typeof BackgroundResponseSchema>;
 
 /**
- * Popup/content → background one-shot messages for model provider settings.
+ * Popup/content → background one-shot messages for model settings and Track lifecycle.
  * Never carry API keys in responses to content scripts; only a configured flag.
  */
 export const BackgroundMessageSchema = z.discriminatedUnion('type', [
@@ -158,6 +168,18 @@ export const BackgroundMessageSchema = z.discriminatedUnion('type', [
   z.object({
     type: z.literal('agentic-mouse/request-openrouter-permission'),
   }),
+  z.object({
+    type: z.literal('agentic-mouse/track/start'),
+    url: z.url(),
+    title: z.string().max(1000),
+    condition: TrackConditionSchema,
+    initialSnapshot: TrackerSnapshotSchema,
+  }),
+  z.object({ type: z.literal('agentic-mouse/track/pause'), trackerId: z.string().min(1) }),
+  z.object({ type: z.literal('agentic-mouse/track/resume'), trackerId: z.string().min(1) }),
+  z.object({ type: z.literal('agentic-mouse/track/cancel'), trackerId: z.string().min(1) }),
+  z.object({ type: z.literal('agentic-mouse/track/check-now'), trackerId: z.string().min(1) }),
+  z.object({ type: z.literal('agentic-mouse/track/list') }),
 ]);
 export type BackgroundMessage = z.infer<typeof BackgroundMessageSchema>;
 
@@ -178,3 +200,20 @@ export const PermissionResponseSchema = z.object({
   granted: z.boolean(),
 });
 export type PermissionResponse = z.infer<typeof PermissionResponseSchema>;
+
+export const TrackStartResponseSchema = z.discriminatedUnion('ok', [
+  z.object({
+    ok: z.literal(true),
+    trackerId: z.string().min(1),
+    taskId: z.string().min(1),
+    nextCheckAt: z.iso.datetime(),
+  }),
+  z.object({ ok: z.literal(false), reason: z.string().min(1) }),
+]);
+export type TrackStartResponse = z.infer<typeof TrackStartResponseSchema>;
+
+export const TrackMutationResponseSchema = z.object({
+  ok: z.boolean(),
+  reason: z.string().optional(),
+});
+export type TrackMutationResponse = z.infer<typeof TrackMutationResponseSchema>;
