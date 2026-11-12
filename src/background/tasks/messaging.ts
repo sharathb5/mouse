@@ -13,6 +13,7 @@ import {
 } from '@/platform/credentials-store';
 import { loadDestinationsConfig, saveDestinationsConfig } from '@/platform/destinations-store';
 import { CURSOR_API_ORIGIN_PATTERN } from '../destinations';
+import type { TrackingService } from '../tracking';
 import type { TaskOrchestrator } from './orchestrator';
 
 function isExtensionPage(sender: Browser.runtime.MessageSender): boolean {
@@ -30,7 +31,15 @@ async function ensureCursorHostPermission(): Promise<boolean> {
   }
 }
 
-export function createBackgroundMessageHandler(orchestrator: TaskOrchestrator) {
+export interface BackgroundMessageHandlerOptions {
+  /** When set, Track inbox commands pause/resume/cancel the TrackerStore too. */
+  tracking?: TrackingService;
+}
+
+export function createBackgroundMessageHandler(
+  orchestrator: TaskOrchestrator,
+  options: BackgroundMessageHandlerOptions = {},
+) {
   return (
     message: unknown,
     sender: Browser.runtime.MessageSender,
@@ -39,7 +48,7 @@ export function createBackgroundMessageHandler(orchestrator: TaskOrchestrator) {
     const parsed = BackgroundRequestSchema.safeParse(message);
     if (!parsed.success) return false;
 
-    void handle(parsed.data, sender, orchestrator)
+    void handle(parsed.data, sender, orchestrator, options.tracking)
       .then(sendResponse)
       .catch((error: unknown) => {
         sendResponse({
@@ -56,6 +65,7 @@ async function handle(
   request: BackgroundRequest,
   sender: Browser.runtime.MessageSender,
   orchestrator: TaskOrchestrator,
+  tracking: TrackingService | undefined,
 ): Promise<BackgroundResponse> {
   switch (request.type) {
     case 'agentic-mouse/list-destinations': {
@@ -152,6 +162,38 @@ async function handle(
       }
     }
     case 'agentic-mouse/task-command': {
+      const task = await orchestrator.store.get(request.taskId);
+      const isTrack = task?.request.input.actionId === 'track';
+
+      if (
+        isTrack &&
+        tracking &&
+        request.command !== 'open-result' &&
+        request.command !== 'dismiss'
+      ) {
+        const trackers = await tracking.trackers.list();
+        const tracker = trackers.find((item) => item.taskId === request.taskId);
+        if (tracker) {
+          if (request.command === 'pause') {
+            await tracking.handleMessage({
+              type: 'agentic-mouse/track/pause',
+              trackerId: tracker.id,
+            });
+          } else if (request.command === 'resume') {
+            await tracking.handleMessage({
+              type: 'agentic-mouse/track/resume',
+              trackerId: tracker.id,
+            });
+          } else {
+            await tracking.handleMessage({
+              type: 'agentic-mouse/track/cancel',
+              trackerId: tracker.id,
+            });
+          }
+          return { type: 'ok' };
+        }
+      }
+
       switch (request.command) {
         case 'cancel':
           await orchestrator.cancel(request.taskId);
@@ -163,12 +205,27 @@ async function handle(
           await orchestrator.resume(request.taskId);
           break;
         case 'dismiss':
+          if (isTrack && tracking) {
+            const trackers = await tracking.trackers.list();
+            const tracker = trackers.find((item) => item.taskId === request.taskId);
+            if (tracker) {
+              await tracking.handleMessage({
+                type: 'agentic-mouse/track/cancel',
+                trackerId: tracker.id,
+              });
+            }
+          }
           await orchestrator.dismiss(request.taskId);
           break;
         case 'open-result': {
-          const task = await orchestrator.store.get(request.taskId);
-          const url = task?.external?.url;
-          if (url) await browser.tabs.create({ url, active: true });
+          if (task?.request.input.actionId === 'track') {
+            await browser.tabs.create({
+              url: task.request.input.context.source.url,
+              active: true,
+            });
+          } else if (task?.external?.url) {
+            await browser.tabs.create({ url: task.external.url, active: true });
+          }
           break;
         }
       }

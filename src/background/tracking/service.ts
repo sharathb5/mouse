@@ -1,6 +1,6 @@
 import { browser } from 'wxt/browser';
 import {
-  TrackBackgroundMessageSchema,
+  type SelectedContext,
   type Task,
   type TrackBackgroundMessage,
   type TrackMutationResponse,
@@ -22,6 +22,26 @@ async function refreshBadge(tasks: TaskStore): Promise<void> {
   await setActiveTaskBadge(countActiveTasks(await tasks.list()));
 }
 
+function fallbackTrackContext(
+  message: Extract<TrackBackgroundMessage, { type: 'agentic-mouse/track/start' }>,
+  now: string,
+): SelectedContext {
+  return (
+    message.context ?? {
+      untrusted: true,
+      source: {
+        url: message.url,
+        title: message.title,
+        capturedAt: now,
+        frame: 'top',
+      },
+      target: { kind: 'page', blocks: [] },
+      page: { kind: 'product', confidence: 0.5, signals: ['track-start'] },
+      containsSensitiveData: false,
+    }
+  );
+}
+
 async function handleStart(
   message: Extract<TrackBackgroundMessage, { type: 'agentic-mouse/track/start' }>,
   deps: { trackers: TrackerStore; tasks: TaskStore },
@@ -31,24 +51,15 @@ async function handleStart(
   const nextCheckAt = nextCheckIso();
   const taskId = newId('task');
   const trackerId = newId('trk');
+  const context = fallbackTrackContext(message, now);
+  const trackedName = String(message.initialSnapshot.fields.name?.value ?? message.title);
 
   const task: Task = {
     request: {
       id: taskId,
       input: {
         actionId: 'track',
-        context: {
-          untrusted: true,
-          source: {
-            url: message.url,
-            title: message.title,
-            capturedAt: now,
-            frame: 'top',
-          },
-          target: { kind: 'page', blocks: [] },
-          page: { kind: 'product', confidence: 0.5, signals: ['track-start'] },
-          containsSensitiveData: false,
-        },
+        context,
         condition: message.condition,
       },
       executor: { kind: 'extension' },
@@ -62,6 +73,7 @@ async function handleStart(
       paused: false,
     },
     updatedAt: now,
+    title: `Track · ${trackedName}`.slice(0, 120),
   };
 
   const tracker: Tracker = {
@@ -151,6 +163,12 @@ async function handleMutation(
 export interface TrackingService {
   trackers: TrackerStore;
   tasks: TaskStore;
+  handleMessage(
+    message: TrackBackgroundMessage,
+    sourceTabId?: number,
+  ): Promise<
+    TrackStartResponse | TrackMutationResponse | { ok: true; trackers: Tracker[]; tasks: Task[] }
+  >;
 }
 
 export interface TrackingTestApi {
@@ -175,6 +193,23 @@ export function startTrackingService(
 
   attachAlarmListener(deps);
 
+  const handleMessage: TrackingService['handleMessage'] = async (message, sourceTabId) => {
+    switch (message.type) {
+      case 'agentic-mouse/track/start':
+        return handleStart(message, deps, sourceTabId);
+      case 'agentic-mouse/track/pause':
+        return handleMutation('pause', message.trackerId, deps);
+      case 'agentic-mouse/track/resume':
+        return handleMutation('resume', message.trackerId, deps);
+      case 'agentic-mouse/track/cancel':
+        return handleMutation('cancel', message.trackerId, deps);
+      case 'agentic-mouse/track/check-now':
+        return handleMutation('check-now', message.trackerId, deps);
+      case 'agentic-mouse/track/list':
+        return { ok: true, trackers: await trackers.list(), tasks: await tasks.list() };
+    }
+  };
+
   const api: TrackingTestApi = {
     checkNow: (trackerId) => handleMutation('check-now', trackerId, deps),
     list: async () => ({ ok: true, trackers: await trackers.list(), tasks: await tasks.list() }),
@@ -186,31 +221,6 @@ export function startTrackingService(
   // from a service worker does not deliver to its own onMessage listener.
   (globalThis as TrackingGlobal).__agenticMouseTracking = api;
 
-  browser.runtime.onMessage.addListener((message: unknown, sender, sendResponse) => {
-    const parsed = TrackBackgroundMessageSchema.safeParse(message);
-    if (!parsed.success) return undefined;
-
-    const respond = async () => {
-      switch (parsed.data.type) {
-        case 'agentic-mouse/track/start':
-          return handleStart(parsed.data, deps, sender.tab?.id);
-        case 'agentic-mouse/track/pause':
-          return handleMutation('pause', parsed.data.trackerId, deps);
-        case 'agentic-mouse/track/resume':
-          return handleMutation('resume', parsed.data.trackerId, deps);
-        case 'agentic-mouse/track/cancel':
-          return handleMutation('cancel', parsed.data.trackerId, deps);
-        case 'agentic-mouse/track/check-now':
-          return handleMutation('check-now', parsed.data.trackerId, deps);
-        case 'agentic-mouse/track/list':
-          return { ok: true, trackers: await trackers.list(), tasks: await tasks.list() };
-      }
-    };
-
-    void respond().then(sendResponse);
-    return true;
-  });
-
   void (async () => {
     for (const tracker of await trackers.list()) {
       if (!tracker.paused) await scheduleTracker(tracker);
@@ -218,5 +228,5 @@ export function startTrackingService(
     await refreshBadge(tasks);
   })();
 
-  return { trackers, tasks };
+  return { trackers, tasks, handleMessage };
 }

@@ -7,7 +7,11 @@ import type {
   ProvenancedValue,
 } from '@/core/contracts';
 import { parseMoney } from '@/core/normalize';
-import { extractFromDocument, type SourceAdapter } from '@/core/sources';
+import {
+  extractFromDocument,
+  filterItemsBySelectedContext,
+  type SourceAdapter,
+} from '@/core/sources';
 import { EmptyAlternativesProvider, type AlternativesProvider } from './alternatives';
 
 export interface CompareExecutorDeps {
@@ -120,7 +124,10 @@ export function createCompareExecutor(deps: CompareExecutorDeps): ActionExecutor
       };
 
       const pageUrl = deps.getPageUrl?.() ?? input.context.source.url;
-      const localItems = extractFromDocument(deps.getDocument(), pageUrl, deps.adapters);
+      const extracted = extractFromDocument(deps.getDocument(), pageUrl, deps.adapters);
+      const scoped = filterItemsBySelectedContext(extracted, input.context);
+      // Compare needs ≥2 items; keep the full page set when the outline narrows too far.
+      const localItems = scoped.length >= 2 ? scoped : extracted;
       const items: ExtractedItem[] = [...localItems];
 
       for (const candidateUrl of input.candidateUrls) {

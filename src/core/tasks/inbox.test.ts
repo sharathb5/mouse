@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import type { Task } from '../contracts/task';
-import { countActiveTasks, sortTasksForInbox, taskTitle } from './inbox';
+import {
+  countActiveTasks,
+  describeTrackCondition,
+  inboxKind,
+  sortTasksForInbox,
+  taskDetail,
+  taskTitle,
+} from './inbox';
 
 function task(
   id: string,
@@ -91,5 +98,44 @@ describe('inbox helpers', () => {
     expect(taskTitle(task('1', 'queued', '2026-11-12T04:00:00.000Z', { title: 'Custom' }))).toBe(
       'Custom',
     );
+  });
+
+  it('labels Track tasks and describes conditions', () => {
+    const track = task('t', 'monitoring', '2026-11-12T04:00:00.000Z', {
+      request: {
+        id: 't',
+        createdAt: '2026-11-12T04:00:00.000Z',
+        approval: { kind: 'not-required' },
+        executor: { kind: 'extension' },
+        input: {
+          actionId: 'track',
+          condition: { kind: 'price-below', threshold: { amount: 50, currency: 'USD' } },
+          context: {
+            untrusted: true,
+            source: {
+              url: 'https://example.com/p',
+              title: 'Lamp',
+              capturedAt: '2026-11-12T04:00:00.000Z',
+              frame: 'top',
+            },
+            target: {
+              kind: 'element',
+              element: { kind: 'unknown', confidence: 0.5, signals: [], sensitive: false },
+              text: 'Cedar Desk Lamp — $79',
+              blocks: [{ type: 'paragraph', text: 'Cedar Desk Lamp — $79' }],
+            },
+            page: { kind: 'product', confidence: 0.8, signals: [] },
+            containsSensitiveData: false,
+          },
+        },
+      },
+    });
+    expect(inboxKind(track)).toBe('track');
+    expect(taskTitle(track)).toContain('Track');
+    expect(taskTitle(track)).toContain('Cedar Desk Lamp');
+    expect(
+      describeTrackCondition({ kind: 'price-below', threshold: { amount: 50, currency: 'USD' } }),
+    ).toContain('50');
+    expect(taskDetail(track)).toContain('price drops below');
   });
 });

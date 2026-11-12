@@ -2,11 +2,12 @@ import {
   TrackerSnapshotSchema,
   type ExtractedItem,
   type Money,
+  type SelectedContext,
   type TrackerAvailability,
   type TrackerSnapshot,
 } from '../contracts';
 import { parseMoney } from '../normalize';
-import { extractFromDocument } from '../sources';
+import { extractFromDocument, filterItemsBySelectedContext } from '../sources';
 
 function availabilityOf(raw: string | number | boolean | null): TrackerAvailability | undefined {
   if (typeof raw !== 'string') return undefined;
@@ -72,9 +73,11 @@ export function snapshotFromDocument(
   doc: Document,
   pageUrl: string,
   capturedAt = new Date().toISOString(),
+  context?: SelectedContext,
 ): TrackerSnapshot | null {
   const items = extractFromDocument(doc, pageUrl);
-  const item = primaryTrackItem(items);
+  const scoped = context ? filterItemsBySelectedContext(items, context) : items;
+  const item = primaryTrackItem(scoped);
   if (!item) return null;
   return snapshotFromItem(item, pageUrl, capturedAt);
 }

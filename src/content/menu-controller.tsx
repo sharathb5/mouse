@@ -7,11 +7,7 @@ import {
 } from 'wxt/utils/content-script-ui/shadow-root';
 import { createInlineAvailabilityStubs } from '@/actions/inline/availability';
 import { createSelectContentExecutor } from '@/actions/inline/select-content';
-import {
-  contextFromInvocation,
-  sendToAgentExecutor,
-  SendToAgentDialog,
-} from '@/actions/send-to-agent';
+import { sendToAgentExecutor, SendToAgentDialog } from '@/actions/send-to-agent';
 import { createActionRegistry, type ActionRegistry, type ResolvedAction } from '@/core/actions';
 import {
   ContentScriptMessageSchema,
@@ -26,7 +22,6 @@ import { createMetricsRecorder } from '@/core/metrics';
 import { snapshotFromDocument } from '@/core/tracking';
 import { loadSettings, watchSettings } from '@/platform/settings-store';
 import { runActionInBackground } from './action-client';
-import { buildPageSelectedContext } from './consumer/context';
 import { createResultHost, type ResultHost } from './consumer/result-host';
 import { runRegisteredAction } from './consumer/run-action';
 import { decideContextMenu } from './gesture';
@@ -35,6 +30,7 @@ import { detectQuickTargetKind, shortcutAnchor, type MenuInvocation } from './in
 import { AgenticMenu } from './menu/AgenticMenu';
 import { createPanelController, type PanelController } from './panel/mount';
 import { getViewportSize, type Point } from './positioning';
+import { resolveActionContext } from './resolve-context';
 import { createSelectionChrome, type SelectionChromeController } from './selection/chrome';
 import { selectAt, type SelectionHandle } from './selection';
 
@@ -208,10 +204,20 @@ export function createMenuController(
   async function handleSelect(entry: ResolvedAction) {
     if (open?.kind !== 'menu' || entry.availability.status !== 'available') return;
 
-    if (entry.definition.id === 'send-to-agent') {
-      const { invocation, restoreFocusTo, listeners } = open;
+    const invocation = open.invocation;
+    const actionId = entry.definition.id;
+    // Selection resolution happens after the menu choice — never on the contextmenu path.
+    const outlinedHandle = selectionSession?.handle ?? selectAt(invocation);
+    const context = resolveActionContext({
+      invocation,
+      selectionHandle: outlinedHandle,
+    });
+
+    if (actionId === 'send-to-agent') {
+      const { restoreFocusTo, listeners } = open;
       listeners.abort();
-      const context = contextFromInvocation(invocation);
+      ensureUiHelpers();
+      highlight?.show(outlinedHandle.element);
       open = {
         kind: 'send',
         context,
@@ -223,23 +229,18 @@ export function createMenuController(
       return;
     }
 
-    const invocation = open.invocation;
-    const actionId = entry.definition.id;
-
     // Workstream C consumer actions (Extract / Compare / Track) run through registered executors.
     if (actionId === 'extract' || actionId === 'compare' || actionId === 'track') {
       const executor = registry.getExecutor(actionId);
       if (!executor) return;
       close('tab');
+      ensureUiHelpers();
+      highlight?.show(outlinedHandle.element);
       actionAbort?.abort();
       actionAbort = new AbortController();
       const signal = actionAbort.signal;
-      const outcome = await runRegisteredAction(
-        entry,
-        executor,
-        buildPageSelectedContext(),
-        signal,
-      );
+      const outcome = await runRegisteredAction(entry, executor, context, signal);
+      highlight?.hide();
       if (signal.aborted) return;
       if (outcome.result) {
         results.show(outcome.result);
@@ -255,17 +256,15 @@ export function createMenuController(
 
     close('tab');
     ensureUiHelpers();
-
-    const handle = selectAt(invocation);
-    highlight?.show(handle.element);
+    highlight?.show(outlinedHandle.element);
 
     if (actionId === 'select-content') {
-      beginSelectionSession(handle);
+      beginSelectionSession(outlinedHandle);
       return;
     }
 
     if (entry.definition.presentation === 'inline-panel') {
-      await runInlineAction(actionId, handle, invocation.anchor);
+      await runInlineAction(actionId, outlinedHandle, invocation.anchor);
     }
   }
 

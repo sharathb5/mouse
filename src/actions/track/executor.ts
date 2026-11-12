@@ -48,7 +48,12 @@ export function createTrackExecutor(deps: TrackExecutorDeps): ActionExecutor<'tr
       };
 
       const pageUrl = deps.getPageUrl?.() ?? input.context.source.url;
-      const snapshot = snapshotFromDocument(deps.getDocument(), pageUrl);
+      const snapshot = snapshotFromDocument(
+        deps.getDocument(),
+        pageUrl,
+        new Date().toISOString(),
+        input.context,
+      );
       if (!snapshot) {
         yield {
           type: 'result',
@@ -72,11 +77,11 @@ export function createTrackExecutor(deps: TrackExecutorDeps): ActionExecutor<'tr
       const response = await startTrack({
         type: 'agentic-mouse/track/start',
         url: pageUrl,
-        title: input.context.source.title || String(snapshot.fields.name?.value ?? pageUrl),
+        title: String(snapshot.fields.name?.value ?? '') || input.context.source.title || pageUrl,
         condition: input.condition,
         initialSnapshot: snapshot,
+        context: input.context,
       });
-
       if (!response.ok) {
         yield {
           type: 'error',

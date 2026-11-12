@@ -179,6 +179,8 @@ export const TrackBackgroundMessageSchema = z.discriminatedUnion('type', [
     title: z.string().max(1000),
     condition: TrackConditionSchema,
     initialSnapshot: TrackerSnapshotSchema,
+    /** Optional SelectedContext from the outlined selection (additive). */
+    context: SelectedContextSchema.optional(),
   }),
   z.object({ type: z.literal('agentic-mouse/track/pause'), trackerId: z.string().min(1) }),
   z.object({ type: z.literal('agentic-mouse/track/resume'), trackerId: z.string().min(1) }),

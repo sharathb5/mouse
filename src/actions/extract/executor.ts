@@ -1,7 +1,11 @@
 import type { ActionExecutor } from '@/core/actions';
 import type { ActionEvent, ActionResult } from '@/core/contracts';
 import { normalize, sourcesFor } from '@/core/normalize';
-import { extractFromDocument, type SourceAdapter } from '@/core/sources';
+import {
+  extractFromDocument,
+  filterItemsBySelectedContext,
+  type SourceAdapter,
+} from '@/core/sources';
 import type { SheetsExporter } from './sheets';
 import { UnconfiguredSheetsExporter } from './sheets';
 
@@ -48,7 +52,10 @@ export function createExtractExecutor(deps: ExtractExecutorDeps): ActionExecutor
 
       const doc = deps.getDocument();
       const pageUrl = deps.getPageUrl?.() ?? input.context.source.url;
-      const items = extractFromDocument(doc, pageUrl, deps.adapters);
+      const items = filterItemsBySelectedContext(
+        extractFromDocument(doc, pageUrl, deps.adapters),
+        input.context,
+      );
       if (items.length === 0) {
         yield {
           type: 'result',

@@ -50,4 +50,33 @@ describe('createExtractExecutor', () => {
     expect(result.result.rows.some((row) => row.name === 'Cedar Desk Lamp')).toBe(true);
     expect(result.result.sources.length).toBeGreaterThan(0);
   });
+
+  it('scopes rows to the outlined selection when context names a product', async () => {
+    const html = readFileSync(join(fixtures, 'products.html'), 'utf8');
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    const executor = createExtractExecutor({
+      getDocument: () => doc,
+      getPageUrl: () => 'http://127.0.0.1:4321/products.html',
+    });
+    const scoped = contextFor('http://127.0.0.1:4321/products.html');
+    scoped.target = {
+      kind: 'element',
+      element: { kind: 'unknown', confidence: 0.8, signals: ['test'], sensitive: false },
+      text: 'Cedar Desk Lamp — $79',
+      blocks: [{ type: 'paragraph', text: 'Cedar Desk Lamp — $79' }],
+    };
+    const events = [];
+    for await (const event of executor.execute(
+      { actionId: 'extract', context: scoped, format: 'table' },
+      new AbortController().signal,
+    )) {
+      events.push(event);
+    }
+    const result = events.find((event) => event.type === 'result');
+    if (result?.type !== 'result' || result.result.kind !== 'table') {
+      throw new Error('expected table result');
+    }
+    expect(result.result.rows).toHaveLength(1);
+    expect(result.result.rows[0]?.name).toBe('Cedar Desk Lamp');
+  });
 });
