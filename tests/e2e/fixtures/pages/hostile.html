@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Hostile CSS</title>
+    <style>
+      /* Aggressive host-page styles that would break a non-isolated menu. */
+      * {
+        font-family: 'Comic Sans MS', cursive !important;
+        color: red !important;
+        font-size: 30px !important;
+        line-height: 3 !important;
+        letter-spacing: 4px !important;
+      }
+      button,
+      [role='menu'],
+      [role='menuitem'],
+      ul,
+      li {
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+      }
+      body {
+        transform: translateZ(0);
+        filter: blur(0);
+        zoom: 1;
+      }
+      div {
+        position: static !important;
+      }
+    </style>
+  </head>
+  <body>
+    <p id="target">Shift + right-click this paragraph on a page with hostile CSS.</p>
+    <div style="height: 2000px"></div>
+  </body>
+</html>
