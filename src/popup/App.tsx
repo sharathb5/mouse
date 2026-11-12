@@ -5,6 +5,7 @@ import { EnabledToggle } from './components/EnabledToggle';
 import { InboxPanel } from './components/InboxPanel';
 import { ModelProviderPanel } from './components/ModelProviderPanel';
 import { PinnedActionsPanel } from './components/PinnedActionsPanel';
+import { SheetsExportPanel } from './components/SheetsExportPanel';
 import { TabStatusBanner } from './components/TabStatusBanner';
 import { DestinationsPanel } from './destinations/DestinationsPanel';
 import { useSettings, useTabStatus } from './hooks';
@@ -97,6 +98,7 @@ export function App() {
               model={settings.model}
               onModelChange={(model) => void update((current) => ({ ...current, model }))}
             />
+            <SheetsExportPanel />
           </>
         )}
       </section>

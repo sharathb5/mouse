@@ -8,7 +8,11 @@ import type {
 } from '@/core/contracts';
 import { parseMoney } from '@/core/normalize';
 import { extractFromDocument, type SourceAdapter } from '@/core/sources';
-import { EmptyAlternativesProvider, type AlternativesProvider } from './alternatives';
+import {
+  LocalPageAlternativesProvider,
+  type AlternativesFindResult,
+  type AlternativesProvider,
+} from './alternatives';
 
 export interface CompareExecutorDeps {
   getDocument: () => Document;
@@ -96,8 +100,16 @@ function attributeColumns(items: ExtractedItem[]): Column[] {
   }));
 }
 
+function defaultAlternatives(deps: CompareExecutorDeps): AlternativesProvider {
+  return new LocalPageAlternativesProvider({
+    getDocument: deps.getDocument,
+    getPageUrl: () => deps.getPageUrl?.() ?? 'https://example.invalid/',
+    ...(deps.adapters ? { adapters: deps.adapters } : {}),
+  });
+}
+
 export function createCompareExecutor(deps: CompareExecutorDeps): ActionExecutor<'compare'> {
-  const alternatives = deps.alternatives ?? new EmptyAlternativesProvider();
+  const alternatives = deps.alternatives ?? defaultAlternatives(deps);
 
   return {
     actionId: 'compare',
@@ -122,6 +134,7 @@ export function createCompareExecutor(deps: CompareExecutorDeps): ActionExecutor
       const pageUrl = deps.getPageUrl?.() ?? input.context.source.url;
       const localItems = extractFromDocument(deps.getDocument(), pageUrl, deps.adapters);
       const items: ExtractedItem[] = [...localItems];
+      let alternativesMeta: AlternativesFindResult | undefined;
 
       for (const candidateUrl of input.candidateUrls) {
         if (signal.aborted) break;
@@ -134,8 +147,8 @@ export function createCompareExecutor(deps: CompareExecutorDeps): ActionExecutor
       const seed = items[0];
       if (seed) {
         try {
-          const found = await alternatives.find(seed, signal);
-          items.push(...found);
+          alternativesMeta = await alternatives.find(seed, signal);
+          items.push(...alternativesMeta.items);
         } catch (error) {
           if (signal.aborted || (error instanceof DOMException && error.name === 'AbortError')) {
             yield {
@@ -145,6 +158,14 @@ export function createCompareExecutor(deps: CompareExecutorDeps): ActionExecutor
             return;
           }
           // Alternatives are best-effort; local items can still form a comparison.
+          alternativesMeta = {
+            items: [],
+            source: 'none',
+            notice:
+              error instanceof Error
+                ? error.message
+                : 'Alternatives lookup failed; comparing local items only.',
+          };
         }
       }
 
@@ -159,13 +180,17 @@ export function createCompareExecutor(deps: CompareExecutorDeps): ActionExecutor
       }
 
       if (unique.length < 2) {
+        const reasonParts = [
+          'Need at least two grounded items to compare.',
+          'Extract more products on the page, pass candidate URLs, or configure OpenRouter in Settings for on-page link ranking.',
+        ];
+        if (alternativesMeta?.notice) reasonParts.push(alternativesMeta.notice);
         yield {
           type: 'result',
           result: {
             kind: 'unavailable',
             actionId: 'compare',
-            reason:
-              'Need at least two grounded items to compare. Pin more products on the page, pass candidate URLs, or configure an AlternativesProvider.',
+            reason: reasonParts.join(' '),
           },
         };
         return;
@@ -201,11 +226,20 @@ export function createCompareExecutor(deps: CompareExecutorDeps): ActionExecutor
         items: comparisonItems,
         summary: buildSummary(unique, attributes),
         sources,
+        ...(alternativesMeta?.notice ? { notice: alternativesMeta.notice } : {}),
       };
       yield { type: 'result', result };
     },
   };
 }
 
-export type { AlternativesProvider } from './alternatives';
-export { EmptyAlternativesProvider, StaticAlternativesProvider } from './alternatives';
+export type { AlternativesProvider, AlternativesFindResult } from './alternatives';
+export {
+  EmptyAlternativesProvider,
+  LocalPageAlternativesProvider,
+  PageLinkAlternativesProvider,
+  StaticAlternativesProvider,
+  collectPageLinkCandidates,
+  pickHeuristicLinks,
+  scoreLinkCandidate,
+} from './alternatives';

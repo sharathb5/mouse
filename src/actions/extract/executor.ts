@@ -9,7 +9,7 @@ export interface ExtractExecutorDeps {
   getDocument: () => Document;
   getPageUrl?: () => string;
   adapters?: readonly SourceAdapter[];
-  /** Reserved for the optional Sheets export path; unused until OAuth ships. */
+  /** Optional Sheets export path; status is reflected as a table notice. */
   sheets?: SheetsExporter;
 }
 
@@ -62,24 +62,31 @@ export function createExtractExecutor(deps: ExtractExecutorDeps): ActionExecutor
       }
 
       const { columns, rows } = normalize(items);
+      const sheetsStatus = await sheets.status();
+      const notice = !sheetsStatus.configured
+        ? sheetsStatus.reason
+        : 'Google Sheets export is available from this result.';
+
       const result: Extract<ActionResult, { kind: 'table' }> = {
         kind: 'table',
         columns,
         rows,
         sources: sourcesFor(items),
+        notice,
       };
-      // Confirm the SheetsExporter seam is constructible without performing an export.
-      expectSheetsExporter(sheets);
       yield { type: 'result', result };
     },
   };
 }
 
-function expectSheetsExporter(exporter: SheetsExporter): void {
-  if (typeof exporter.export !== 'function') {
-    throw new Error('SheetsExporter.export missing');
-  }
-}
-
-export type { SheetsExporter } from './sheets';
-export { UnconfiguredSheetsExporter } from './sheets';
+export type { SheetsExporter, SheetsExporterStatus } from './sheets';
+export {
+  UnconfiguredSheetsExporter,
+  GoogleSheetsExporter,
+  SheetsNotConfiguredError,
+  createGoogleSheetsApi,
+  tableToSheetValues,
+  SHEETS_API_HOST_PERMISSION,
+  GOOGLE_ACCOUNTS_HOST_PERMISSION,
+  SHEETS_SCOPE,
+} from './sheets';

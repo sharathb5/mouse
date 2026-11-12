@@ -85,5 +85,6 @@ describe('createCompareExecutor', () => {
       throw new Error('expected comparison');
     }
     expect(result.result.items.some((item) => item.name === 'Alt Lamp')).toBe(true);
+    expect(result.result.notice).toMatch(/MOCKED/i);
   });
 });

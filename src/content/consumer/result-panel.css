@@ -85,6 +85,27 @@
   margin: 0 0 10px;
 }
 
+.am-result__notice {
+  margin: 0 0 10px;
+  padding: 8px 10px;
+  border: 1px solid #e4ddd2;
+  border-radius: 6px;
+  background: #faf6ef;
+  color: #4a453c;
+  font-size: 12px;
+}
+
+.am-result__actions button:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.am-result__sheets-msg {
+  align-self: center;
+  font-size: 11px;
+  color: #4a453c;
+}
+
 .am-result__sources {
   margin: 10px 0 0;
   padding-left: 18px;

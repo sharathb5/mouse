@@ -2,7 +2,9 @@ import { browser } from 'wxt/browser';
 import { defineBackground } from 'wxt/utils/define-background';
 import { storage } from 'wxt/utils/storage';
 import { registerActionRunPort } from '@/background/action-runner';
+import { createAlternativesMessageHandler } from '@/background/alternatives/messaging';
 import { OPENROUTER_HOST_PERMISSION } from '@/background/model';
+import { createSheetsMessageHandler } from '@/background/sheets/messaging';
 import {
   createBackgroundMessageHandler,
   createTaskOrchestrator,
@@ -69,6 +71,8 @@ export default defineBackground(() => {
   });
 
   browser.runtime.onMessage.addListener(createBackgroundMessageHandler(orchestrator));
+  browser.runtime.onMessage.addListener(createAlternativesMessageHandler());
+  browser.runtime.onMessage.addListener(createSheetsMessageHandler());
 
   browser.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     const parsed = ModelBackgroundMessageSchema.safeParse(message);

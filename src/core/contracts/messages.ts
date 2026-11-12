@@ -188,10 +188,87 @@ export const TrackBackgroundMessageSchema = z.discriminatedUnion('type', [
 ]);
 export type TrackBackgroundMessage = z.infer<typeof TrackBackgroundMessageSchema>;
 
+const PageLinkCandidateMessageSchema = z.object({
+  url: z.url(),
+  text: z.string().max(200),
+});
+
+/**
+ * Compare alternatives: optional OpenRouter ranking of on-page links.
+ * Credentials stay in the background; content only sends link candidates already on the page.
+ */
+export const AlternativesBackgroundMessageSchema = z.discriminatedUnion('type', [
+  z.object({
+    type: z.literal('agentic-mouse/alternatives/rank-links'),
+    seed: z.object({
+      name: z.union([z.string(), z.number(), z.boolean(), z.null()]),
+      kind: z.string().min(1),
+      url: z.url().optional(),
+      fields: z.record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.null()])),
+    }),
+    links: z.array(PageLinkCandidateMessageSchema).max(40),
+  }),
+]);
+export type AlternativesBackgroundMessage = z.infer<typeof AlternativesBackgroundMessageSchema>;
+
+export const AlternativesRankResponseSchema = z.object({
+  ok: z.literal(true),
+  urls: z.array(z.url()).max(5),
+  usedOpenRouter: z.boolean(),
+  notice: z.string().max(500).optional(),
+});
+export type AlternativesRankResponse = z.infer<typeof AlternativesRankResponseSchema>;
+
+const TableExportPayloadSchema = z.object({
+  columns: z
+    .array(
+      z.object({
+        key: z.string().min(1),
+        label: z.string().min(1),
+        type: z.enum(['text', 'number', 'currency', 'url', 'date', 'boolean']),
+      }),
+    )
+    .min(1),
+  rows: z.array(z.record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.null()]))),
+  sources: z.array(z.url()).max(50),
+});
+
+/** Google Sheets status / connect / export (credentials never returned to content). */
+export const SheetsBackgroundMessageSchema = z.discriminatedUnion('type', [
+  z.object({ type: z.literal('agentic-mouse/sheets/status') }),
+  z.object({
+    type: z.literal('agentic-mouse/sheets/set-client-id'),
+    clientId: z.string().max(256),
+  }),
+  z.object({ type: z.literal('agentic-mouse/sheets/connect') }),
+  z.object({ type: z.literal('agentic-mouse/sheets/disconnect') }),
+  z.object({
+    type: z.literal('agentic-mouse/sheets/export'),
+    table: TableExportPayloadSchema,
+  }),
+]);
+export type SheetsBackgroundMessage = z.infer<typeof SheetsBackgroundMessageSchema>;
+
+export const SheetsStatusResponseSchema = z.object({
+  ok: z.literal(true),
+  configured: z.boolean(),
+  clientIdConfigured: z.boolean(),
+  reason: z.string().max(500).optional(),
+});
+export type SheetsStatusResponse = z.infer<typeof SheetsStatusResponseSchema>;
+
+export const SheetsExportResponseSchema = z.discriminatedUnion('ok', [
+  z.object({ ok: z.literal(true), url: z.url() }),
+  z.object({ ok: z.literal(false), reason: z.string().min(1) }),
+]);
+export type SheetsExportResponse = z.infer<typeof SheetsExportResponseSchema>;
+
 /** Union of popup/content → background one-shot messages. */
 export const BackgroundMessageSchema = z.union([
   ModelBackgroundMessageSchema,
   TrackBackgroundMessageSchema,
+  AlternativesBackgroundMessageSchema,
+  SheetsBackgroundMessageSchema,
 ]);
 export type BackgroundMessage = z.infer<typeof BackgroundMessageSchema>;
 

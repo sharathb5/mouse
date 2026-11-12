@@ -1,5 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react';
+import { browser } from 'wxt/browser';
 import type { ActionResult } from '@/core/contracts';
+import { SheetsExportResponseSchema, SheetsStatusResponseSchema } from '@/core/contracts';
 import { toCsv } from '@/core/normalize';
 
 export interface ResultPanelProps {
@@ -81,6 +83,11 @@ function renderBody(
       const csv = toCsv(result);
       return (
         <>
+          {result.notice ? (
+            <p className="am-result__notice" data-testid="extract-notice">
+              {result.notice}
+            </p>
+          ) : null}
           <div className="am-result__actions">
             <button
               type="button"
@@ -101,6 +108,7 @@ function renderBody(
             <button type="button" data-testid="extract-download" onClick={() => downloadCsv(csv)}>
               Download CSV
             </button>
+            <SheetsExportButton table={result} />
           </div>
           <div className="am-result__table-wrap">
             <table data-testid="extract-table">
@@ -132,6 +140,11 @@ function renderBody(
           <p className="am-result__summary" data-testid="compare-summary">
             {result.summary}
           </p>
+          {result.notice ? (
+            <p className="am-result__notice" data-testid="compare-notice">
+              {result.notice}
+            </p>
+          ) : null}
           <div className="am-result__table-wrap">
             <table data-testid="compare-table">
               <thead>
@@ -190,6 +203,89 @@ function renderBody(
     case 'handoff':
       return <p data-testid="result-generic">{result.kind}</p>;
   }
+}
+
+function SheetsExportButton({ table }: { table: Extract<ActionResult, { kind: 'table' }> }) {
+  const [configured, setConfigured] = useState(false);
+  const [reason, setReason] = useState(
+    'Google Sheets is not connected. Copy or download CSV instead.',
+  );
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    void browser.runtime
+      .sendMessage({ type: 'agentic-mouse/sheets/status' })
+      .then((raw: unknown) => {
+        const parsed = SheetsStatusResponseSchema.safeParse(raw);
+        if (!active || !parsed.success) return;
+        setConfigured(parsed.data.configured);
+        if (parsed.data.reason) setReason(parsed.data.reason);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  if (!configured) {
+    return (
+      <button
+        type="button"
+        data-testid="extract-sheets"
+        data-sheets-configured="false"
+        disabled
+        title={reason}
+      >
+        Sheets unavailable
+      </button>
+    );
+  }
+
+  return (
+    <>
+      <button
+        type="button"
+        data-testid="extract-sheets"
+        data-sheets-configured="true"
+        disabled={busy}
+        onClick={() => {
+          setBusy(true);
+          setMessage(null);
+          void browser.runtime
+            .sendMessage({
+              type: 'agentic-mouse/sheets/export',
+              table: {
+                columns: table.columns,
+                rows: table.rows,
+                sources: table.sources,
+              },
+            })
+            .then((raw: unknown) => {
+              const parsed = SheetsExportResponseSchema.safeParse(raw);
+              if (!parsed.success) {
+                setMessage('Sheets export failed.');
+                return;
+              }
+              if (!parsed.data.ok) {
+                setMessage(parsed.data.reason);
+                return;
+              }
+              setMessage(`Opened ${parsed.data.url}`);
+              window.open(parsed.data.url, '_blank', 'noopener,noreferrer');
+            })
+            .finally(() => setBusy(false));
+        }}
+      >
+        {busy ? 'Exporting…' : 'Export to Sheets'}
+      </button>
+      {message ? (
+        <span className="am-result__sheets-msg" data-testid="extract-sheets-message">
+          {message}
+        </span>
+      ) : null}
+    </>
+  );
 }
 
 function SourceList({ sources }: { sources: string[] }) {

@@ -66,6 +66,12 @@ test.describe('consumer actions', () => {
     expect(download.suggestedFilename()).toMatch(/\.csv$/i);
     const path = await download.path();
     expect(path).toBeTruthy();
+
+    // Sheets stays clearly unavailable without OAuth; copy/CSV remain primary.
+    await expect(page.getByTestId('extract-notice')).toContainText(/Google Sheets/i);
+    const sheets = page.getByTestId('extract-sheets');
+    await expect(sheets).toBeDisabled();
+    await expect(sheets).toHaveAttribute('data-sheets-configured', 'false');
   });
 
   test('Compare shows at least two grounded items on a product listing', async ({

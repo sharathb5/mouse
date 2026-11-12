@@ -36,6 +36,8 @@ export const ActionResultSchema = z.discriminatedUnion('kind', [
     columns: z.array(ColumnSchema).min(1),
     rows: z.array(z.record(z.string(), CellSchema)),
     sources,
+    /** Honest UX note (e.g. Sheets export unavailable). Never used to invent rows. */
+    notice: z.string().max(500).optional(),
   }),
   z.object({
     kind: z.literal('comparison'),
@@ -51,6 +53,8 @@ export const ActionResultSchema = z.discriminatedUnion('kind', [
       .min(2),
     summary: z.string(),
     sources,
+    /** Honest UX note (e.g. remote alternatives unconfigured). Never invents attributes. */
+    notice: z.string().max(500).optional(),
   }),
   z.object({
     kind: z.literal('handoff'),

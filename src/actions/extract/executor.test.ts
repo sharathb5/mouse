@@ -49,5 +49,6 @@ describe('createExtractExecutor', () => {
     expect(result.result.rows).toHaveLength(3);
     expect(result.result.rows.some((row) => row.name === 'Cedar Desk Lamp')).toBe(true);
     expect(result.result.sources.length).toBeGreaterThan(0);
+    expect(result.result.notice).toMatch(/Google Sheets/i);
   });
 });
