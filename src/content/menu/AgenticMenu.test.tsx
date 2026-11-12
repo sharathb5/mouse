@@ -1,10 +1,7 @@
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createActionRegistry, type ActionExecutor } from '@/core/actions';
 import type { MenuInvocation } from '../invocation';
-import { AgenticMenu } from './AgenticMenu';
-
-afterEach(cleanup);
+import { mountAgenticMenu, type AgenticMenuHandle } from './mount-menu';
 
 const invocation: MenuInvocation = {
   id: 1,
@@ -15,9 +12,20 @@ const invocation: MenuInvocation = {
   startedAt: 0,
 };
 
+let handle: AgenticMenuHandle | null = null;
+let root: HTMLElement;
+
+afterEach(() => {
+  handle?.destroy();
+  handle = null;
+  root.remove();
+});
+
 function renderMenu(
   entries = createActionRegistry().resolve(['explain', 'select-content', 'send-to-agent']),
 ) {
+  root = document.createElement('div');
+  document.body.append(root);
   const props = {
     invocation,
     entries,
@@ -25,14 +33,14 @@ function renderMenu(
     onDismiss: vi.fn(),
     onPositioned: vi.fn(),
   };
-  render(<AgenticMenu {...props} />);
+  handle = mountAgenticMenu(root, props);
   return props;
 }
 
 describe('AgenticMenu', () => {
   it('renders pinned actions in order, marked as coming soon', () => {
     const props = renderMenu();
-    const items = screen.getAllByRole('menuitem');
+    const items = [...root.querySelectorAll<HTMLElement>('[role="menuitem"]')];
     expect(items.map((item) => item.textContent)).toEqual([
       'Explain ThisSoon',
       'Select ContentSoon',
@@ -44,11 +52,13 @@ describe('AgenticMenu', () => {
 
   it('explains instead of executing when an unavailable action is clicked', () => {
     const props = renderMenu();
-    const [first] = screen.getAllByRole('menuitem');
+    const first = root.querySelector<HTMLElement>('[role="menuitem"]');
     if (!first) throw new Error('missing item');
-    fireEvent.click(first);
+    first.click();
     expect(props.onSelect).not.toHaveBeenCalled();
-    expect(screen.getByRole('status').textContent).toMatch(/Explain This isn't available yet/);
+    expect(root.querySelector('[role="status"]')?.textContent).toMatch(
+      /Explain This isn't available yet/,
+    );
   });
 
   it('forwards available actions to onSelect', () => {
@@ -60,33 +70,30 @@ describe('AgenticMenu', () => {
       },
     };
     const props = renderMenu(createActionRegistry({ executors: [executor] }).resolve(['explain']));
-    const [item] = screen.getAllByRole('menuitem');
+    const item = root.querySelector<HTMLElement>('[role="menuitem"]');
     if (!item) throw new Error('missing item');
     expect(item.getAttribute('aria-disabled')).toBeNull();
-    fireEvent.click(item);
+    item.click();
     expect(props.onSelect).toHaveBeenCalledTimes(1);
   });
 
   it('supports arrow-key navigation and dismisses on Tab', () => {
     const props = renderMenu();
-    const items = screen.getAllByRole('menuitem');
-    const menu = screen.getByRole('menu');
+    const items = [...root.querySelectorAll<HTMLElement>('[role="menuitem"]')];
+    const menu = root.querySelector<HTMLElement>('[role="menu"]');
+    if (!menu) throw new Error('missing menu');
     expect(items[0]).toBe(document.activeElement);
-    act(() => {
-      fireEvent.keyDown(menu, { key: 'ArrowDown' });
-    });
+    menu.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
     expect(items[1]).toBe(document.activeElement);
-    act(() => {
-      fireEvent.keyDown(menu, { key: 'ArrowUp' });
-      fireEvent.keyDown(menu, { key: 'ArrowUp' });
-    });
+    menu.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true }));
+    menu.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true }));
     expect(items[2]).toBe(document.activeElement);
-    fireEvent.keyDown(menu, { key: 'Tab' });
+    menu.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true }));
     expect(props.onDismiss).toHaveBeenCalledTimes(1);
   });
 
   it('shows guidance when nothing is pinned', () => {
     renderMenu([]);
-    expect(screen.getByText(/No pinned actions/)).toBeTruthy();
+    expect(root.textContent).toMatch(/No pinned actions/);
   });
 });

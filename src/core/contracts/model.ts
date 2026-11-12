@@ -2,10 +2,10 @@ import { z } from 'zod';
 import { ActionErrorSchema, ActionResultSchema } from './result';
 import { ActionIdSchema } from './action';
 import { SelectedContextSchema } from './context';
+import { DEFAULT_MODEL_PREFERENCES as DEFAULT_MODEL_PREFERENCES_BASE } from './settings-defaults';
 import { TaskProgressSchema } from './task';
 
-/** Default OpenRouter model; users can override in settings. */
-export const DEFAULT_OPENROUTER_MODEL = 'openai/gpt-4o-mini';
+export { DEFAULT_OPENROUTER_MODEL } from './settings-defaults';
 
 export const MODEL_PROVIDER_IDS = ['openrouter', 'mock'] as const;
 export const ModelProviderIdSchema = z.enum(MODEL_PROVIDER_IDS);
@@ -31,8 +31,7 @@ export const ModelPreferencesSchema = z.object({
 export type ModelPreferences = z.infer<typeof ModelPreferencesSchema>;
 
 export const DEFAULT_MODEL_PREFERENCES: ModelPreferences = {
-  providerId: 'openrouter',
-  modelId: DEFAULT_OPENROUTER_MODEL,
+  ...DEFAULT_MODEL_PREFERENCES_BASE,
 };
 
 /** Port name for content ↔ background model streaming. */

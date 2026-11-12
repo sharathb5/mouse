@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { DEFAULT_NOTIFICATION_PREFERENCES as DEFAULT_NOTIFICATION_PREFERENCES_BASE } from './settings-defaults';
 
 /** User preferences for extension-generated notifications (Track / task completion). */
 export const NotificationPreferencesSchema = z.object({
@@ -8,8 +9,7 @@ export const NotificationPreferencesSchema = z.object({
 export type NotificationPreferences = z.infer<typeof NotificationPreferencesSchema>;
 
 export const DEFAULT_NOTIFICATION_PREFERENCES: NotificationPreferences = {
-  taskCompleted: true,
-  trackConditionMet: true,
+  ...DEFAULT_NOTIFICATION_PREFERENCES_BASE,
 };
 
 export function parseNotificationPreferences(raw: unknown): NotificationPreferences {

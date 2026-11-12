@@ -1,23 +1,11 @@
 import { z } from 'zod';
+import { ACTION_IDS, type ActionId } from './action-ids';
 import { SelectedContextSchema } from './context';
 import { MoneySchema } from './classification';
 
-export const ACTION_IDS = [
-  'explain',
-  'select-content',
-  'send-to-agent',
-  'summarize',
-  'translate',
-  'ask-follow-up',
-  'simplify',
-  'go-deeper',
-  'example',
-  'compare',
-  'extract',
-  'track',
-] as const;
+export { ACTION_IDS, isActionId, type ActionId } from './action-ids';
+
 export const ActionIdSchema = z.enum(ACTION_IDS);
-export type ActionId = z.infer<typeof ActionIdSchema>;
 
 export const ActionCategorySchema = z.enum(['understand', 'select', 'delegate', 'real-world']);
 export type ActionCategory = z.infer<typeof ActionCategorySchema>;

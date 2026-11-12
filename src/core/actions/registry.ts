@@ -1,11 +1,9 @@
-import {
-  ACTION_IDS,
-  ActionDefinitionSchema,
-  type ActionAvailability,
-  type ActionDefinition,
-  type ActionEvent,
-  type ActionId,
-  type ActionInputFor,
+import { ACTION_IDS, isActionId, type ActionId } from '../contracts/action-ids';
+import type {
+  ActionAvailability,
+  ActionDefinition,
+  ActionEvent,
+  ActionInputFor,
 } from '../contracts';
 import { ACTION_CATALOG } from './catalog';
 
@@ -43,8 +41,10 @@ export const COMING_SOON_REASON = 'Not available yet. Coming in a future update.
 
 export function createActionRegistry(options: ActionRegistryOptions = {}): ActionRegistry {
   const definitions = options.definitions ?? ACTION_CATALOG;
+  // Catalog shape is enforced at compile time (`satisfies`) and in unit tests via Zod.
+  // Skip runtime Zod here so content-script imports of the registry stay schema-free.
   for (const id of ACTION_IDS) {
-    const definition = ActionDefinitionSchema.parse(definitions[id]);
+    const definition = definitions[id];
     if (definition.id !== id) {
       throw new Error(`Action definition key "${id}" does not match its id "${definition.id}"`);
     }
@@ -64,9 +64,6 @@ export function createActionRegistry(options: ActionRegistryOptions = {}): Actio
       ? { status: 'available' }
       : { status: 'coming-soon', reason: COMING_SOON_REASON },
   });
-
-  const isActionId = (value: string): value is ActionId =>
-    (ACTION_IDS as readonly string[]).includes(value);
 
   return {
     list: () => ACTION_IDS.map(resolveOne),
