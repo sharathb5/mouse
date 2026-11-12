@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Issue #12</title>
+  </head>
+  <body>
+    <nav>GitHub</nav>
+    <h1 class="js-issue-title" id="intro">Outline drifts on scroll</h1>
+    <p>Repro steps go here.</p>
+    <script>
+      window.__pageEvents = { contextmenu: [], clicks: 0, keydowns: [] };
+      window.addEventListener('contextmenu', (e) => {
+        window.__pageEvents.contextmenu.push({
+          shiftKey: e.shiftKey,
+          defaultPrevented: e.defaultPrevented,
+        });
+      });
+    </script>
+  </body>
+</html>

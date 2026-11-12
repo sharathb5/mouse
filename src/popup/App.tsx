@@ -3,6 +3,7 @@ import type { Settings } from '@/core/contracts';
 import { BehaviorPanel } from './components/BehaviorPanel';
 import { EnabledToggle } from './components/EnabledToggle';
 import { InboxPanel } from './components/InboxPanel';
+import { ModelProviderPanel } from './components/ModelProviderPanel';
 import { PinnedActionsPanel } from './components/PinnedActionsPanel';
 import { TabStatusBanner } from './components/TabStatusBanner';
 import { DestinationsPanel } from './destinations/DestinationsPanel';
@@ -85,12 +86,18 @@ export function App() {
         )}
         {tab === 'agents' && <DestinationsPanel />}
         {tab === 'settings' && settings && (
-          <BehaviorPanel
-            triggerMode={settings.triggerMode}
-            onTriggerModeChange={(triggerMode) =>
-              void update((current) => ({ ...current, triggerMode }))
-            }
-          />
+          <>
+            <BehaviorPanel
+              triggerMode={settings.triggerMode}
+              onTriggerModeChange={(triggerMode) =>
+                void update((current) => ({ ...current, triggerMode }))
+              }
+            />
+            <ModelProviderPanel
+              model={settings.model}
+              onModelChange={(model) => void update((current) => ({ ...current, model }))}
+            />
+          </>
         )}
       </section>
     </main>

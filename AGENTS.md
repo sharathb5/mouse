@@ -28,10 +28,12 @@ HEADED=1 pnpm test:e2e                      # watch the e2e run (needs a display
 ## Repository map
 
 ```
-src/core/          Contracts (Zod), action catalog + registry, pure logic. NO react/wxt/browser imports.
-src/platform/      browser.* adapters: settings storage, tab status, badge.
-src/content/       Content script runtime: gesture decision, positioning, Shadow DOM menu.
-src/popup/         Popup React UI (toggle, inbox placeholder, pinned actions, behavior settings).
+src/core/          Contracts (Zod), action catalog + registry, classification, pure logic. NO react/wxt/browser imports.
+src/platform/      browser.* adapters: settings storage, model API key storage, tab status, badge.
+src/content/       Gesture path, selection/highlight/extraction, Shadow DOM menu + inline panel.
+src/actions/       Action executors (inline AI + select-content). Background owns real model calls.
+src/background/    Model providers (OpenRouter + mock), action-run Port handler.
+src/popup/         Popup React UI (toggle, inbox placeholder, pinned actions, behavior + model settings).
 src/entrypoints/   WXT entrypoints (background, content, popup). Keep them thin.
 tests/e2e/         Playwright specs + fixture pages served on http://127.0.0.1:4321.
 docs/              PRD, architecture, implementation plan.

@@ -199,7 +199,7 @@ export function createMenuController(
   }
 
   async function handleSelect(entry: ResolvedAction) {
-    if (!open || open.kind !== 'menu' || entry.availability.status !== 'available') return;
+    if (open?.kind !== 'menu' || entry.availability.status !== 'available') return;
 
     if (entry.definition.id === 'send-to-agent') {
       const { invocation, restoreFocusTo, listeners } = open;

@@ -62,8 +62,9 @@ export function BehaviorPanel({
 
       <h2 className="section-title">Privacy</h2>
       <p className="hint">
-        This build processes everything locally and sends no page content anywhere. Future actions
-        share content only when you invoke them.
+        Selection and classification stay on-device. Inline AI actions send the selected page
+        content to the configured provider only when you invoke them. API keys never enter page
+        scripts.
       </p>
     </div>
   );

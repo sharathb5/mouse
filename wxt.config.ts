@@ -14,8 +14,8 @@ export default defineConfig({
     // alarms: poll Cursor Cloud Agent task status while the service worker sleeps.
     // notifications: one completion/failure toast per task.
     permissions: ['storage', 'alarms', 'notifications'],
-    // Requested at Cursor connect time from the popup — not granted up front.
-    optional_host_permissions: ['https://api.cursor.com/*'],
+    // Requested at connect/configure time from the popup — not granted up front.
+    optional_host_permissions: ['https://api.cursor.com/*', 'https://openrouter.ai/*'],
     action: {
       default_title: 'Agentic Mouse',
     },
