@@ -332,9 +332,8 @@ Contract additions to propose in Phase 1: `ExtractedItem` (fields with per-value
 ## Recommended next engineering tasks (cross-cutting)
 
 1. Phase 1 contract PRs for all three workstreams (small, reviewed together).
-2. Reduce the content-script bundle (~350 kB, mostly React + Zod) by lazy-loading the menu UI
-   chunk via `web_accessible_resources` or switching validation in the content script to
-   `zod/mini`; measure page-load impact first.
+2. ~~Reduce the content-script bundle (~350 kB, mostly React + Zod)~~ Done on
+   `feat/content-script-bundle`: lean ESM shell (~58 kB initial) + lazy React/consumer chunks.
 3. Add a performance regression check (e.g. median `menu.open` over N Playwright runs).
 4. Decide model provider and Cursor credential UX (blocks real verification in A and B).
 5. Accessibility pass (screen reader announcements for menu open, focus return paths).

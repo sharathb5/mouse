@@ -48,9 +48,20 @@ export default tseslint.config(
   },
   {
     // Only core/ is restricted from UI and browser APIs.
-    files: ['src/**/*.{ts,tsx}', 'tests/**/*.ts', '*.config.ts'],
+    files: ['src/**/*.{ts,tsx}', 'tests/**/*.ts', 'modules/**/*.ts', '*.config.ts'],
     ignores: ['src/core/**'],
     rules: { 'no-restricted-imports': 'off' },
+  },
+  {
+    // WXT build modules talk to Vite/Rolldown with loosely typed merge output.
+    files: ['modules/**/*.ts'],
+    rules: {
+      '@typescript-eslint/no-deprecated': 'off',
+      '@typescript-eslint/no-unsafe-assignment': 'off',
+      '@typescript-eslint/no-unsafe-member-access': 'off',
+      '@typescript-eslint/no-misused-promises': 'off',
+      '@typescript-eslint/no-unnecessary-template-expression': 'off',
+    },
   },
   {
     files: ['src/**/*.{ts,tsx}'],

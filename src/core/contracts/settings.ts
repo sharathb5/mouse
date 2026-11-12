@@ -1,20 +1,17 @@
 import { z } from 'zod';
 import { ActionIdSchema, type ActionId } from './action';
-import { DEFAULT_MODEL_PREFERENCES, ModelPreferencesSchema, type ModelPreferences } from './model';
+import { ModelPreferencesSchema, type ModelPreferences } from './model';
+import { NotificationPreferencesSchema, parseNotificationPreferences } from './notifications';
 import {
+  DEFAULT_MODEL_PREFERENCES,
   DEFAULT_NOTIFICATION_PREFERENCES,
-  NotificationPreferencesSchema,
-  parseNotificationPreferences,
-} from './notifications';
+  DEFAULT_PINNED_ACTIONS,
+  DEFAULT_SETTINGS as DEFAULT_SETTINGS_BASE,
+  MAX_PINNED_ACTIONS,
+  SETTINGS_VERSION,
+} from './settings-defaults';
 
-export const SETTINGS_VERSION = 1;
-export const MAX_PINNED_ACTIONS = 8;
-
-export const DEFAULT_PINNED_ACTIONS: readonly ActionId[] = [
-  'explain',
-  'select-content',
-  'send-to-agent',
-];
+export { DEFAULT_PINNED_ACTIONS, MAX_PINNED_ACTIONS, SETTINGS_VERSION } from './settings-defaults';
 
 /**
  * - `shift-right-click` (default): Shift + right-click opens Agentic Mouse; right-click is native.
@@ -41,9 +38,7 @@ export const SettingsSchema = z.object({
 export type Settings = z.infer<typeof SettingsSchema>;
 
 export const DEFAULT_SETTINGS: Settings = {
-  version: SETTINGS_VERSION,
-  enabled: true,
-  triggerMode: 'shift-right-click',
+  ...DEFAULT_SETTINGS_BASE,
   pinnedActionIds: [...DEFAULT_PINNED_ACTIONS],
   model: { ...DEFAULT_MODEL_PREFERENCES },
   notifications: { ...DEFAULT_NOTIFICATION_PREFERENCES },

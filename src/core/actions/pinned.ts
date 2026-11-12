@@ -1,9 +1,5 @@
-import {
-  ACTION_IDS,
-  DEFAULT_PINNED_ACTIONS,
-  MAX_PINNED_ACTIONS,
-  type ActionId,
-} from '../contracts';
+import { ACTION_IDS, type ActionId } from '../contracts/action-ids';
+import { DEFAULT_PINNED_ACTIONS, MAX_PINNED_ACTIONS } from '../contracts/settings-defaults';
 
 /** Pure operations on the pinned-action list. Callers persist the returned array. */
 

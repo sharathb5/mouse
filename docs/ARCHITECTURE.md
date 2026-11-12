@@ -12,9 +12,11 @@ flowchart LR
     DOM[Page DOM]
   end
   subgraph CS["Content script (isolated world)"]
+    Loader[content/index.tsx\ntiny IIFE loader]
     Gesture[gesture.ts\ndecideContextMenu]
-    Ctrl[menu-controller.tsx]
-    UI["Shadow DOM UI\n&lt;agentic-mouse-ui&gt;\nAgenticMenu.tsx"]
+    Ctrl[menu-controller.ts\nlean ESM shell]
+    UI["Shadow DOM menu\n&lt;agentic-mouse-ui&gt;\nmount-menu.ts"]
+    Lazy["Lazy ESM chunks\nReact panels / actions"]
   end
   subgraph Ext["Extension pages"]
     BG[background.ts\nservice worker]
@@ -29,21 +31,22 @@ flowchart LR
   Popup -- 'ping' message --> Ctrl
 ```
 
-| Piece             | File(s)                                        | Responsibility                                                                       |
-| ----------------- | ---------------------------------------------- | ------------------------------------------------------------------------------------ |
-| Content script    | `src/entrypoints/content/index.tsx`            | Entry; runs on `http(s)://*/*`, top frame only, `document_idle`.                     |
-| Menu controller   | `src/content/menu-controller.tsx`              | Gesture handling, open/close lifecycle, dismissal listeners, shortcut/ping messages. |
-| Gesture decision  | `src/content/gesture.ts`                       | Pure: who handles a `contextmenu` (native vs. Agentic Mouse) given settings.         |
-| Positioning       | `src/content/positioning.ts`                   | Pure: viewport-aware placement (flip + clamp).                                       |
-| Invocation        | `src/content/invocation.ts`                    | Cheap snapshot of what was clicked (`MenuInvocation`). Seam for Workstream A.        |
-| Menu UI           | `src/content/menu/AgenticMenu.tsx`, `menu.css` | Renders resolved actions; keyboard nav; "coming soon" notices.                       |
-| Background        | `src/entrypoints/background.ts`                | Install defaults, badge, task orchestration, Cursor polling, fallback shortcut.      |
-| Popup             | `src/entrypoints/popup/*`, `src/popup/*`       | Toggle, page status, Inbox (tasks + walking cat), Agents settings, pinned actions.   |
-| Tasks             | `src/core/tasks/*`, `src/background/tasks/*`   | Pure state machine + persisted TaskStore, alarms, completion notifications.          |
-| Destinations      | `src/background/destinations/*`                | Cursor Cloud Agent adapter, prefill-link, clipboard handoff.                         |
-| Contracts         | `src/core/contracts/*`                         | Zod schemas + inferred types for every cross-module data shape.                      |
-| Action registry   | `src/core/actions/*`                           | Catalog of action definitions; executors register to become available.               |
-| Platform adapters | `src/platform/*`                               | Thin wrappers over `browser.*` (settings storage, tab status, badge).                |
+| Piece             | File(s)                                      | Responsibility                                                                       |
+| ----------------- | -------------------------------------------- | ------------------------------------------------------------------------------------ |
+| Content loader    | `src/entrypoints/content/index.tsx`          | Tiny IIFE; dynamically imports the ESM app. Runs on `http(s)://*/*`, top frame only. |
+| Content ESM entry | `src/entrypoints/content/esm-index.ts`       | Starts the menu controller; built with code-splitting into `content-scripts/esm/`.   |
+| Menu controller   | `src/content/menu-controller.ts`             | Gesture handling, open/close lifecycle, dismissal listeners, shortcut/ping messages. |
+| Gesture decision  | `src/content/gesture.ts`                     | Pure: who handles a `contextmenu` (native vs. Agentic Mouse) given settings.         |
+| Positioning       | `src/content/positioning.ts`                 | Pure: viewport-aware placement (flip + clamp).                                       |
+| Invocation        | `src/content/invocation.ts`                  | Cheap snapshot of what was clicked (`MenuInvocation`). Seam for Workstream A.        |
+| Menu UI           | `src/content/menu/mount-menu.ts`, `menu.css` | Vanilla Shadow DOM menu (no React); keyboard nav; "coming soon" notices.             |
+| Lazy UI / actions | `src/content/lazy/*`                         | React panels, selection chrome, Send-to-Agent, consumer executors — loaded on use.   |     | Background | `src/entrypoints/background.ts` | Install defaults, badge, task orchestration, Cursor polling, fallback shortcut. |
+| Popup             | `src/entrypoints/popup/*`, `src/popup/*`     | Toggle, page status, Inbox (tasks + walking cat), Agents settings, pinned actions.   |
+| Tasks             | `src/core/tasks/*`, `src/background/tasks/*` | Pure state machine + persisted TaskStore, alarms, completion notifications.          |
+| Destinations      | `src/background/destinations/*`              | Cursor Cloud Agent adapter, prefill-link, clipboard handoff.                         |
+| Contracts         | `src/core/contracts/*`                       | Zod schemas + inferred types for every cross-module data shape.                      |
+| Action registry   | `src/core/actions/*`                         | Catalog of action definitions; executors register to become available.               |
+| Platform adapters | `src/platform/*`                             | Thin wrappers over `browser.*` (settings storage, tab status, badge).                |
 
 ## Module boundaries
 
@@ -76,8 +79,13 @@ On every `contextmenu` event the controller does, synchronously:
    Shadow DOM host, render, measure, position in a layout effect before paint.
 
 No storage reads, network calls, LLM calls, or DOM-wide scans happen in this path. Settings are
-loaded once at startup and kept fresh via `storage.watch`. If settings or the UI are not ready
-yet, the decision **fails open to the native menu**.
+loaded once at startup (Zod-free parser) and kept fresh via `storage.watch`. If settings or the
+UI are not ready yet, the decision **fails open to the native menu**.
+
+The content script is split so http(s) pages only parse a tiny IIFE loader plus the lean ESM
+shell (gesture + vanilla menu). React panels, Send-to-Agent, selection chrome, and consumer
+action executors live in lazy ESM chunks under `web_accessible_resources` and load after the
+user picks a non-menu action.
 
 A matching right-button `mousedown` has only its default cancelled (it still propagates), so
 Shift + click does not extend the page's text selection.
@@ -182,6 +190,7 @@ one-line change once quota behavior is considered.
 | `alarms`                                  | Poll Cursor Cloud Agent run status while the MV3 service worker is suspended, and schedule Workstream C Track checks.                                                                   |
 | `notifications`                           | One completion/failure notification per agent task, plus Track condition-met alerts (honors notification preferences).                                                                  |
 | Content script on `http(s)://*/*`         | The Shift + right-click listener must already be present when the user right-clicks. `activeTab` + on-demand injection would require clicking the toolbar first, defeating the product. |
+| `web_accessible_resources` for ESM chunks | Content-script code splitting: the tiny IIFE loader imports the lean ESM shell; React panels and consumer actions load as separate chunks under `content-scripts/esm/`.                 |
 | `commands`                                | Manifest key (no permission prompt) for the fallback shortcut.                                                                                                                          |
 | Optional host `https://api.cursor.com/*`  | Requested when the user saves a Cursor API key; used only by the background adapter.                                                                                                    |
 | Optional `https://openrouter.ai/*`        | Requested only when the user configures OpenRouter for inline AI. Used solely by the background service worker.                                                                         |
