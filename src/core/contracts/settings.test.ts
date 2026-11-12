@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { DEFAULT_MODEL_PREFERENCES } from './model';
 import {
   DEFAULT_PINNED_ACTIONS,
   DEFAULT_SETTINGS,
@@ -13,9 +14,10 @@ describe('settings defaults', () => {
     expect(DEFAULT_PINNED_ACTIONS).toEqual(['explain', 'select-content', 'send-to-agent']);
   });
 
-  it('defaults to enabled with Shift + right-click', () => {
+  it('defaults to enabled with Shift + right-click and OpenRouter preferences', () => {
     expect(DEFAULT_SETTINGS.enabled).toBe(true);
     expect(DEFAULT_SETTINGS.triggerMode).toBe('shift-right-click');
+    expect(DEFAULT_SETTINGS.model).toEqual(DEFAULT_MODEL_PREFERENCES);
     expect(SettingsSchema.parse(DEFAULT_SETTINGS)).toEqual(DEFAULT_SETTINGS);
   });
 });
@@ -46,6 +48,7 @@ describe('parseSettings', () => {
       enabled: false,
       triggerMode: 'shift-right-click',
       pinnedActionIds: ['track', 'explain'],
+      model: { ...DEFAULT_MODEL_PREFERENCES },
     });
   });
 
@@ -55,12 +58,35 @@ describe('parseSettings', () => {
 
   it('passes valid settings through unchanged', () => {
     const valid = {
-      version: 1,
+      version: 1 as const,
       enabled: true,
-      triggerMode: 'right-click',
-      pinnedActionIds: ['summarize'],
+      triggerMode: 'right-click' as const,
+      pinnedActionIds: ['summarize' as const],
+      model: { providerId: 'mock' as const, modelId: 'mock-deterministic' },
     };
     expect(parseSettings(valid)).toEqual(valid);
+  });
+
+  it('migrates bootstrap settings that lack model preferences', () => {
+    expect(
+      parseSettings({
+        version: 1,
+        enabled: true,
+        triggerMode: 'shift-right-click',
+        pinnedActionIds: ['explain', 'select-content', 'send-to-agent'],
+      }),
+    ).toEqual(DEFAULT_SETTINGS);
+  });
+
+  it('repairs invalid model preferences field-by-field', () => {
+    expect(
+      parseSettings({
+        model: { providerId: 'anthropic', modelId: 'claude-3' },
+      }).model,
+    ).toEqual({
+      providerId: DEFAULT_MODEL_PREFERENCES.providerId,
+      modelId: 'claude-3',
+    });
   });
 });
 

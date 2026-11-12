@@ -2,7 +2,7 @@
  * Local-only latency instrumentation. Nothing here leaves the device; a future telemetry
  * sink must be opt-in and must never include page content.
  */
-export type MetricName = 'menu.open' | 'menu.action-selected';
+export type MetricName = 'menu.open' | 'menu.action-selected' | 'inline.first-token';
 
 export interface MetricSample {
   name: MetricName;

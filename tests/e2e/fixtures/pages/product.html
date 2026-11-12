@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Acme Mug</title>
+    <meta property="og:type" content="product" />
+  </head>
+  <body>
+    <nav>Shop</nav>
+    <h1>Acme Mug</h1>
+    <p id="intro">A sturdy ceramic mug for long debugging sessions.</p>
+    <script>
+      window.__pageEvents = { contextmenu: [], clicks: 0, keydowns: [] };
+      window.addEventListener('contextmenu', (e) => {
+        window.__pageEvents.contextmenu.push({
+          shiftKey: e.shiftKey,
+          defaultPrevented: e.defaultPrevented,
+        });
+      });
+    </script>
+  </body>
+</html>

@@ -178,14 +178,16 @@ one-line change once quota behavior is considered.
 
 | Permission / access                      | Why                                                                                                                                                                                     |
 | ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `storage`                                | Persist settings, destinations, tasks, and credentials (credentials never leave the background).                                                                                        |
+| `storage`                                | Persist settings, destinations, tasks, and credentials (credentials never leave the background). Model API keys are stored separately from Cursor credentials.                          |
 | `alarms`                                 | Poll Cursor Cloud Agent run status while the MV3 service worker is suspended.                                                                                                           |
 | `notifications`                          | One completion/failure notification per task.                                                                                                                                           |
 | Content script on `http(s)://*/*`        | The Shift + right-click listener must already be present when the user right-clicks. `activeTab` + on-demand injection would require clicking the toolbar first, defeating the product. |
 | `commands`                               | Manifest key (no permission prompt) for the fallback shortcut.                                                                                                                          |
 | Optional host `https://api.cursor.com/*` | Requested when the user saves a Cursor API key; used only by the background adapter.                                                                                                    |
+| Optional `https://openrouter.ai/*`       | Requested only when the user configures OpenRouter for inline AI. Used solely by the background service worker.                                                                         |
 
-No `tabs` / `scripting` / `<all_urls>` host permission beyond the content script, and no remote code. The Cursor API key is stored under `local:credentials` and is never included in content-script-visible messages.
+No `tabs` / `scripting` / `<all_urls>` host permission beyond the content script, and no remote code.
+API keys never leave background/storage; content scripts receive only `apiKeyConfigured` / destination status flags.
 
 ## Testing strategy
 

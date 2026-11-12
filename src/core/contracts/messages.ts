@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { SelectedContextSchema } from './context';
 import { AgentDestinationSchema } from './destination';
 import { SavedActionSchema, TrustedRuleSchema } from './destinations-config';
+import { ModelProviderSettingsSchema } from './model';
 import { TaskApprovalSchema, TaskIdSchema, TaskSchema } from './task';
 
 /** Manifest command name for the fallback keyboard shortcut (see wxt.config.ts). */
@@ -142,3 +143,38 @@ export const BackgroundResponseSchema = z.discriminatedUnion('type', [
   }),
 ]);
 export type BackgroundResponse = z.infer<typeof BackgroundResponseSchema>;
+
+/**
+ * Popup/content → background one-shot messages for model provider settings.
+ * Never carry API keys in responses to content scripts; only a configured flag.
+ */
+export const BackgroundMessageSchema = z.discriminatedUnion('type', [
+  z.object({ type: z.literal('agentic-mouse/model-settings') }),
+  z.object({
+    type: z.literal('agentic-mouse/set-model-api-key'),
+    apiKey: z.string(),
+  }),
+  z.object({ type: z.literal('agentic-mouse/clear-model-api-key') }),
+  z.object({
+    type: z.literal('agentic-mouse/request-openrouter-permission'),
+  }),
+]);
+export type BackgroundMessage = z.infer<typeof BackgroundMessageSchema>;
+
+export const ModelSettingsResponseSchema = z.object({
+  ok: z.literal(true),
+  settings: ModelProviderSettingsSchema,
+});
+export type ModelSettingsResponse = z.infer<typeof ModelSettingsResponseSchema>;
+
+export const SetApiKeyResponseSchema = z.object({
+  ok: z.literal(true),
+  settings: ModelProviderSettingsSchema,
+});
+export type SetApiKeyResponse = z.infer<typeof SetApiKeyResponseSchema>;
+
+export const PermissionResponseSchema = z.object({
+  ok: z.literal(true),
+  granted: z.boolean(),
+});
+export type PermissionResponse = z.infer<typeof PermissionResponseSchema>;

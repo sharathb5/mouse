@@ -22,8 +22,9 @@ test.describe('context menu gesture', () => {
     await expect(menu(page)).toBeVisible();
     const items = menu(page).getByRole('menuitem');
     await expect(items).toHaveText([/Explain This/, /Select Content/, /Send to Agent/]);
-    await expect(items.nth(0)).toHaveAttribute('data-availability', 'coming-soon');
-    await expect(items.nth(1)).toHaveAttribute('data-availability', 'coming-soon');
+    // Explain + Select Content ship with Workstream A; Send to Agent with Workstream B.
+    await expect(items.nth(0)).toHaveAttribute('data-availability', 'available');
+    await expect(items.nth(1)).toHaveAttribute('data-availability', 'available');
     await expect(items.nth(2)).toHaveAttribute('data-availability', 'available');
     await expect(page.getByTestId('agentic-mouse-target')).toHaveText('Page content');
 
@@ -76,16 +77,32 @@ test.describe('context menu gesture', () => {
     expect((await pageEvents(page)).clicks).toBe(1);
   });
 
-  test('clicking a coming-soon action explains instead of executing', async ({ page }) => {
+  test('clicking a coming-soon action explains instead of executing', async ({
+    page,
+    serviceWorker,
+  }) => {
+    // Default pins are all implemented after Workstreams A+B; pin Compare (still C) instead.
+    await serviceWorker.evaluate(async () => {
+      const current = (await chrome.storage.local.get('settings')).settings as
+        Record<string, unknown> | undefined;
+      await chrome.storage.local.set({
+        settings: {
+          ...current,
+          pinnedActionIds: ['explain', 'select-content', 'compare'],
+        },
+      });
+    });
+    await openFixture(serviceWorker, page);
+
     await rightClick(page, page.locator('#intro'), { shift: true });
     // Playwright treats aria-disabled as non-actionable, but users can still click it.
     await menu(page)
-      .getByRole('menuitem', { name: /Explain This/ })
+      .getByRole('menuitem', { name: /Compare/ })
       .click({ force: true });
 
     await expect(menu(page)).toBeVisible();
     await expect(page.getByTestId('agentic-mouse-status')).toHaveText(
-      /Explain This isn't available yet/,
+      /Compare isn't available yet/,
     );
     expect((await pageEvents(page)).clicks).toBe(0);
   });
