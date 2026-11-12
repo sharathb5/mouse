@@ -1,0 +1,183 @@
+/*
+ * Rendered inside a Shadow DOM. WXT prepends `:host { all: initial }`; every property the
+ * menu depends on is still set explicitly so inherited page styles cannot leak in.
+ */
+.am-menu {
+  --am-bg: #ffffff;
+  --am-fg: #1c1b19;
+  --am-muted: #6b6760;
+  --am-border: rgba(28, 27, 25, 0.12);
+  --am-hover: #fff6d6;
+  --am-accent: #f2b705;
+  --am-focus: #b98a00;
+
+  position: fixed;
+  z-index: 2147483647;
+  box-sizing: border-box;
+  width: 232px;
+  margin: 0;
+  padding: 6px;
+  background: var(--am-bg);
+  color: var(--am-fg);
+  border: 1px solid var(--am-border);
+  border-radius: 10px;
+  box-shadow:
+    0 10px 28px rgba(0, 0, 0, 0.16),
+    0 2px 6px rgba(0, 0, 0, 0.08);
+  font-family:
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.35;
+  text-align: left;
+  letter-spacing: normal;
+  user-select: none;
+  cursor: default;
+}
+
+.am-menu *,
+.am-menu *::before,
+.am-menu *::after {
+  box-sizing: border-box;
+}
+
+.am-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 8px 6px;
+  border-bottom: 1px solid var(--am-border);
+  margin-bottom: 4px;
+}
+
+.am-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--am-fg);
+}
+
+.am-glyph {
+  display: block;
+  color: var(--am-accent);
+}
+
+.am-target {
+  font-size: 11px;
+  color: var(--am-muted);
+  white-space: nowrap;
+}
+
+.am-list {
+  display: block;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.am-list > li {
+  display: block;
+  margin: 0;
+  padding: 0;
+}
+
+.am-item {
+  all: unset;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 7px 8px;
+  border-radius: 6px;
+  color: var(--am-fg);
+  font: inherit;
+  cursor: pointer;
+}
+
+.am-item:hover,
+.am-item:focus-visible {
+  background: var(--am-hover);
+}
+
+.am-item:focus-visible {
+  outline: 2px solid var(--am-focus);
+  outline-offset: -2px;
+}
+
+.am-item[aria-disabled='true'] .am-label,
+.am-item[aria-disabled='true'] .am-icon {
+  color: var(--am-muted);
+}
+
+.am-icon {
+  display: inline-flex;
+  flex: none;
+  width: 16px;
+  height: 16px;
+  color: var(--am-fg);
+}
+
+.am-icon svg {
+  display: block;
+}
+
+.am-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.am-badge {
+  flex: none;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: #f3f1ec;
+  color: var(--am-muted);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.am-empty {
+  margin: 0;
+  padding: 8px;
+  color: var(--am-muted);
+  font-size: 12px;
+}
+
+.am-status:empty {
+  display: none;
+}
+
+.am-status {
+  margin: 4px 0 0;
+  padding: 6px 8px 2px;
+  border-top: 1px solid var(--am-border);
+  color: var(--am-muted);
+  font-size: 11.5px;
+}
+
+@media (prefers-color-scheme: dark) {
+  .am-menu {
+    --am-bg: #22211f;
+    --am-fg: #f4f2ee;
+    --am-muted: #a8a49c;
+    --am-border: rgba(255, 255, 255, 0.12);
+    --am-hover: #3a3425;
+  }
+
+  .am-badge {
+    background: #33312d;
+  }
+}
