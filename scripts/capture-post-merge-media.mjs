@@ -77,93 +77,96 @@ async function save(name) {
 }
 
 const now = '2026-11-12T04:00:00.000Z';
-await worker.evaluate(async (tasks) => {
-  await chrome.storage.local.set({ tasks: { version: 1, tasks } });
-  await chrome.action.setBadgeText({ text: '2' });
-}, [
-  {
-    request: {
-      id: 'task_running',
-      createdAt: now,
-      approval: { kind: 'explicit', approvedAt: now },
-      executor: {
-        kind: 'agent',
-        destination: {
-          id: 'cursor-default',
-          label: 'Cursor Cloud Agent',
-          isDefault: true,
-          integration: 'cursor-cloud-agent',
-          capability: 'background-execution',
-          repository: 'github.com/sharathb5/mouse',
-        },
-      },
-      input: {
-        actionId: 'send-to-agent',
-        destinationId: 'cursor-default',
-        context: {
-          untrusted: true,
-          source: {
-            url: 'https://example.com/a',
-            title: 'Running page',
-            capturedAt: now,
-            frame: 'top',
-          },
-          target: { kind: 'page', blocks: [{ type: 'paragraph', text: 'A' }] },
-          page: { kind: 'generic', confidence: 0, signals: [] },
-          containsSensitiveData: false,
-        },
-      },
-    },
-    state: {
-      status: 'running',
-      progress: { mode: 'determinate', fraction: 0.4, label: 'Working' },
-      updates: [{ at: now, message: 'Agent working…' }],
-    },
-    updatedAt: now,
-    title: 'Running demo',
-    external: {
-      id: 'bc-demo',
-      runId: 'run-demo',
-      url: 'https://cursor.com/agents/bc-demo',
-    },
+await worker.evaluate(
+  async (tasks) => {
+    await chrome.storage.local.set({ tasks: { version: 1, tasks } });
+    await chrome.action.setBadgeText({ text: '2' });
   },
-  {
-    request: {
-      id: 'task_monitoring',
-      createdAt: now,
-      approval: { kind: 'not-required' },
-      executor: { kind: 'extension' },
-      input: {
-        actionId: 'track',
-        condition: { kind: 'price-below', threshold: { amount: 70, currency: 'USD' } },
-        context: {
-          untrusted: true,
-          source: {
-            url: 'https://example.com/b',
-            title: 'Cedar Desk Lamp',
-            capturedAt: now,
-            frame: 'top',
+  [
+    {
+      request: {
+        id: 'task_running',
+        createdAt: now,
+        approval: { kind: 'explicit', approvedAt: now },
+        executor: {
+          kind: 'agent',
+          destination: {
+            id: 'cursor-default',
+            label: 'Cursor Cloud Agent',
+            isDefault: true,
+            integration: 'cursor-cloud-agent',
+            capability: 'background-execution',
+            repository: 'github.com/sharathb5/mouse',
           },
-          target: {
-            kind: 'element',
-            element: { kind: 'unknown', confidence: 0.5, signals: [], sensitive: false },
-            text: 'Cedar Desk Lamp — $79',
-            blocks: [{ type: 'paragraph', text: 'Cedar Desk Lamp — $79' }],
+        },
+        input: {
+          actionId: 'send-to-agent',
+          destinationId: 'cursor-default',
+          context: {
+            untrusted: true,
+            source: {
+              url: 'https://example.com/a',
+              title: 'Running page',
+              capturedAt: now,
+              frame: 'top',
+            },
+            target: { kind: 'page', blocks: [{ type: 'paragraph', text: 'A' }] },
+            page: { kind: 'generic', confidence: 0, signals: [] },
+            containsSensitiveData: false,
           },
-          page: { kind: 'product', confidence: 0.8, signals: [] },
-          containsSensitiveData: false,
         },
       },
+      state: {
+        status: 'running',
+        progress: { mode: 'determinate', fraction: 0.4, label: 'Working' },
+        updates: [{ at: now, message: 'Agent working…' }],
+      },
+      updatedAt: now,
+      title: 'Running demo',
+      external: {
+        id: 'bc-demo',
+        runId: 'run-demo',
+        url: 'https://cursor.com/agents/bc-demo',
+      },
     },
-    state: {
-      status: 'monitoring',
-      nextCheckAt: '2026-11-12T05:00:00.000Z',
-      paused: false,
+    {
+      request: {
+        id: 'task_monitoring',
+        createdAt: now,
+        approval: { kind: 'not-required' },
+        executor: { kind: 'extension' },
+        input: {
+          actionId: 'track',
+          condition: { kind: 'price-below', threshold: { amount: 70, currency: 'USD' } },
+          context: {
+            untrusted: true,
+            source: {
+              url: 'https://example.com/b',
+              title: 'Cedar Desk Lamp',
+              capturedAt: now,
+              frame: 'top',
+            },
+            target: {
+              kind: 'element',
+              element: { kind: 'unknown', confidence: 0.5, signals: [], sensitive: false },
+              text: 'Cedar Desk Lamp — $79',
+              blocks: [{ type: 'paragraph', text: 'Cedar Desk Lamp — $79' }],
+            },
+            page: { kind: 'product', confidence: 0.8, signals: [] },
+            containsSensitiveData: false,
+          },
+        },
+      },
+      state: {
+        status: 'monitoring',
+        nextCheckAt: '2026-11-12T05:00:00.000Z',
+        paused: false,
+      },
+      updatedAt: now,
+      title: 'Track · Cedar Desk Lamp',
     },
-    updatedAt: now,
-    title: 'Track · Cedar Desk Lamp',
-  },
-]);
+  ],
+);
 
 const popup = await context.newPage();
 await popup.setViewportSize({ width: 360, height: 640 });
@@ -200,7 +203,10 @@ await expectReady();
 await page.locator('#stand').click({ button: 'right', modifiers: ['Shift'] });
 await page.getByTestId('agentic-mouse-menu').waitFor();
 await page.getByRole('menuitem', { name: /Send to Agent/ }).click();
-await page.getByTestId('send-to-agent-dialog').waitFor({ timeout: 5000 }).catch(() => null);
+await page
+  .getByTestId('send-to-agent-dialog')
+  .waitFor({ timeout: 5000 })
+  .catch(() => null);
 const sendHost = page.locator('agentic-mouse-ui');
 await sendHost.waitFor({ state: 'attached' });
 await page.waitForTimeout(300);
