@@ -46,6 +46,16 @@ export function createMenuController(
 
   const isReady = () => settings !== null && ui !== null;
 
+  /**
+   * Shift + mousedown extends the page's text selection before `contextmenu` fires. When the
+   * press will open our menu, cancel only that default so the user's selection is preserved.
+   * The event still propagates to the page.
+   */
+  function onMouseDown(event: MouseEvent) {
+    if (event.button !== 2 || !isReady()) return;
+    if (decideContextMenu(event, settings) === 'agentic-mouse') event.preventDefault();
+  }
+
   function onContextMenu(event: MouseEvent) {
     const decision = isReady() ? decideContextMenu(event, settings) : 'native';
     if (decision === 'native') {
@@ -206,6 +216,7 @@ export function createMenuController(
       // Register the gesture listener first; until settings and UI are ready it defers to
       // the native menu.
       ctx.addEventListener(window, 'contextmenu', onContextMenu, { capture: true });
+      ctx.addEventListener(window, 'mousedown', onMouseDown, { capture: true });
       browser.runtime.onMessage.addListener(onMessage);
       const unwatch = watchSettings((next) => {
         settings = next;

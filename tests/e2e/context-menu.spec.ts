@@ -103,6 +103,27 @@ test.describe('context menu gesture', () => {
     expect((await pageEvents(page)).keydowns).toEqual(['Shift']);
   });
 
+  test('Shift + right-click does not extend or clear the page selection', async ({ page }) => {
+    const intro = page.locator('#intro');
+    const selectionText = () => page.evaluate(() => window.getSelection()?.toString() ?? '');
+
+    // A caret from an earlier click must not turn into a Shift-extended selection.
+    await intro.click({ position: { x: 20, y: 10 } });
+    await rightClick(page, page.locator('#third'), { shift: true });
+    await expect(menu(page)).toBeVisible();
+    expect(await selectionText()).toBe('');
+    await expect(page.getByTestId('agentic-mouse-target')).toHaveText('Page content');
+    await page.keyboard.press('Escape');
+
+    // An existing selection is preserved, so actions can use it.
+    await intro.dblclick({ position: { x: 20, y: 10 } });
+    const selected = await selectionText();
+    expect(selected.trim().length).toBeGreaterThan(0);
+    await rightClick(page, page.locator('#third'), { shift: true });
+    await expect(page.getByTestId('agentic-mouse-target')).toHaveText('Selected text');
+    expect(await selectionText()).toBe(selected);
+  });
+
   test('opens on links and does not follow them', async ({ page }) => {
     await rightClick(page, page.locator('#docs-link'), { shift: true });
     await expect(menu(page)).toBeVisible();
