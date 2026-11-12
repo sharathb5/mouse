@@ -11,11 +11,17 @@ export default defineConfig({
     description: 'Right-click anything. Understand it, act on it, or delegate it.',
     // Keep permissions minimal. Host access comes only from the content script
     // match patterns (http/https pages), which the gesture listener requires.
-    // alarms: poll Cursor Cloud Agent task status while the service worker sleeps.
-    // notifications: one completion/failure toast per task.
+    // alarms: Cursor Cloud Agent polling + Workstream C Track scheduler.
+    // notifications: task completion/failure + Track condition-met alerts.
     permissions: ['storage', 'alarms', 'notifications'],
-    // Requested at connect/configure time from the popup — not granted up front.
-    optional_host_permissions: ['https://api.cursor.com/*', 'https://openrouter.ai/*'],
+    // Requested at connect/configure/track time from the popup or Track start — not up front.
+    // http(s)://*/* optional hosts: per tracked origin for offline Track checks.
+    optional_host_permissions: [
+      'https://api.cursor.com/*',
+      'https://openrouter.ai/*',
+      'http://*/*',
+      'https://*/*',
+    ],
     action: {
       default_title: 'Agentic Mouse',
     },

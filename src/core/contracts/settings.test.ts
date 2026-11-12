@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_MODEL_PREFERENCES } from './model';
+import { DEFAULT_NOTIFICATION_PREFERENCES } from './notifications';
 import {
   DEFAULT_PINNED_ACTIONS,
   DEFAULT_SETTINGS,
   MAX_PINNED_ACTIONS,
+  SETTINGS_VERSION,
   SettingsSchema,
   normalizePinnedActionIds,
   parseSettings,
@@ -18,6 +20,7 @@ describe('settings defaults', () => {
     expect(DEFAULT_SETTINGS.enabled).toBe(true);
     expect(DEFAULT_SETTINGS.triggerMode).toBe('shift-right-click');
     expect(DEFAULT_SETTINGS.model).toEqual(DEFAULT_MODEL_PREFERENCES);
+    expect(DEFAULT_SETTINGS.notifications).toEqual(DEFAULT_NOTIFICATION_PREFERENCES);
     expect(SettingsSchema.parse(DEFAULT_SETTINGS)).toEqual(DEFAULT_SETTINGS);
   });
 });
@@ -44,16 +47,28 @@ describe('parseSettings', () => {
         pinnedActionIds: ['track', 'nope', 'track', 'explain'],
       }),
     ).toEqual({
-      version: 1,
+      version: SETTINGS_VERSION,
       enabled: false,
       triggerMode: 'shift-right-click',
       pinnedActionIds: ['track', 'explain'],
       model: { ...DEFAULT_MODEL_PREFERENCES },
+      notifications: { ...DEFAULT_NOTIFICATION_PREFERENCES },
     });
   });
 
   it('preserves an intentionally empty pinned list', () => {
     expect(parseSettings({ enabled: true, pinnedActionIds: [] }).pinnedActionIds).toEqual([]);
+  });
+
+  it('repairs missing notification preferences on older stored settings', () => {
+    expect(
+      parseSettings({
+        version: 1,
+        enabled: true,
+        triggerMode: 'shift-right-click',
+        pinnedActionIds: ['explain'],
+      }).notifications,
+    ).toEqual(DEFAULT_NOTIFICATION_PREFERENCES);
   });
 
   it('passes valid settings through unchanged', () => {
@@ -63,6 +78,7 @@ describe('parseSettings', () => {
       triggerMode: 'right-click' as const,
       pinnedActionIds: ['summarize' as const],
       model: { providerId: 'mock' as const, modelId: 'mock-deterministic' },
+      notifications: { taskCompleted: false, trackConditionMet: true },
     };
     expect(parseSettings(valid)).toEqual(valid);
   });

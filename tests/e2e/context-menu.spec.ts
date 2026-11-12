@@ -77,11 +77,8 @@ test.describe('context menu gesture', () => {
     expect((await pageEvents(page)).clicks).toBe(1);
   });
 
-  test('clicking a coming-soon action explains instead of executing', async ({
-    page,
-    serviceWorker,
-  }) => {
-    // Default pins are all implemented after Workstreams A+B; pin Compare (still C) instead.
+  test('pinned Compare is available after Workstream C', async ({ page, serviceWorker }) => {
+    // Coming-soon notice UX is covered by AgenticMenu unit tests; A+B+C ship every catalog id.
     await serviceWorker.evaluate(async () => {
       const current = (await chrome.storage.local.get('settings')).settings as
         Record<string, unknown> | undefined;
@@ -95,16 +92,9 @@ test.describe('context menu gesture', () => {
     await openFixture(serviceWorker, page);
 
     await rightClick(page, page.locator('#intro'), { shift: true });
-    // Playwright treats aria-disabled as non-actionable, but users can still click it.
-    await menu(page)
-      .getByRole('menuitem', { name: /Compare/ })
-      .click({ force: true });
-
-    await expect(menu(page)).toBeVisible();
-    await expect(page.getByTestId('agentic-mouse-status')).toHaveText(
-      /Compare isn't available yet/,
-    );
-    expect((await pageEvents(page)).clicks).toBe(0);
+    const compare = menu(page).getByRole('menuitem', { name: /Compare/ });
+    await expect(compare).toHaveAttribute('data-availability', 'available');
+    await expect(compare).not.toHaveAttribute('aria-disabled', 'true');
   });
 
   test('keyboard navigation moves between items', async ({ page }) => {

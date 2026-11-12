@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Fixture Shop — Products</title>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "Product",
+            "name": "Cedar Desk Lamp",
+            "sku": "LAMP-1",
+            "brand": { "@type": "Brand", "name": "Northbeam" },
+            "offers": {
+              "@type": "Offer",
+              "price": "79.00",
+              "priceCurrency": "USD",
+              "availability": "https://schema.org/InStock",
+              "url": "http://127.0.0.1:4321/products.html#lamp"
+            }
+          },
+          {
+            "@type": "Product",
+            "name": "Oak Monitor Stand",
+            "sku": "STAND-2",
+            "brand": { "@type": "Brand", "name": "Northbeam" },
+            "offers": {
+              "@type": "Offer",
+              "price": "129.00",
+              "priceCurrency": "USD",
+              "availability": "https://schema.org/InStock",
+              "url": "http://127.0.0.1:4321/products.html#stand"
+            }
+          },
+          {
+            "@type": "Product",
+            "name": "Wool Desk Mat",
+            "sku": "MAT-3",
+            "brand": { "@type": "Brand", "name": "Harbor" },
+            "offers": {
+              "@type": "Offer",
+              "price": "48.00",
+              "priceCurrency": "USD",
+              "availability": "https://schema.org/OutOfStock",
+              "url": "http://127.0.0.1:4321/products.html#mat"
+            }
+          }
+        ]
+      }
+    </script>
+  </head>
+  <body>
+    <h1>Fixture Shop</h1>
+    <ul>
+      <li id="lamp">Cedar Desk Lamp — $79</li>
+      <li id="stand">Oak Monitor Stand — $129</li>
+      <li id="mat">Wool Desk Mat — $48 (sold out)</li>
+    </ul>
+    <script>
+      window.__pageEvents = { contextmenu: [], clicks: 0, keydowns: [] };
+      document.addEventListener(
+        'contextmenu',
+        (event) => {
+          window.__pageEvents.contextmenu.push({
+            shiftKey: event.shiftKey,
+            defaultPrevented: event.defaultPrevented,
+          });
+        },
+        true,
+      );
+      document.addEventListener('click', () => {
+        window.__pageEvents.clicks += 1;
+      });
+      document.addEventListener('keydown', (event) => {
+        window.__pageEvents.keydowns.push(event.key);
+      });
+    </script>
+  </body>
+</html>

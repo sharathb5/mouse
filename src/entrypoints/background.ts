@@ -8,9 +8,10 @@ import {
   createTaskOrchestrator,
   TASK_POLL_ALARM,
 } from '@/background/tasks';
+import { startTrackingService } from '@/background/tracking';
 import {
-  BackgroundMessageSchema,
   DEFAULT_SETTINGS,
+  ModelBackgroundMessageSchema,
   OPEN_MENU_COMMAND,
   type ContentScriptMessage,
   type ModelProviderSettings,
@@ -57,6 +58,7 @@ async function modelSettingsResponse(): Promise<ModelProviderSettings> {
 
 export default defineBackground(() => {
   registerActionRunPort();
+  startTrackingService();
 
   browser.runtime.onInstalled.addListener(() => {
     void onInstalled();
@@ -69,7 +71,7 @@ export default defineBackground(() => {
   browser.runtime.onMessage.addListener(createBackgroundMessageHandler(orchestrator));
 
   browser.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-    const parsed = BackgroundMessageSchema.safeParse(message);
+    const parsed = ModelBackgroundMessageSchema.safeParse(message);
     if (!parsed.success) return undefined;
 
     void (async () => {
