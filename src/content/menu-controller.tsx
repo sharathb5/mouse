@@ -153,7 +153,14 @@ export function createMenuController(
       options,
     );
     window.addEventListener('resize', () => close('viewport'), options);
-    window.addEventListener('blur', () => close('viewport'), options);
+    window.addEventListener(
+      'blur',
+      (event) => {
+        // Capture-phase listeners also see element blurs (e.g. focus moving into the menu).
+        if (event.target === window) close('viewport');
+      },
+      options,
+    );
     document.addEventListener(
       'scroll',
       (event) => {
@@ -173,7 +180,7 @@ export function createMenuController(
     if (!parsed.success) return undefined;
     switch (parsed.data.type) {
       case 'agentic-mouse/ping':
-        sendResponse({ ok: true, menuOpen: open !== null });
+        sendResponse({ ok: true, ready: isReady(), menuOpen: open !== null });
         return undefined;
       case 'agentic-mouse/open-menu': {
         const canOpen = isReady() && settings?.enabled === true;
@@ -216,7 +223,20 @@ export function createMenuController(
         position: 'inline',
         anchor: () => document.documentElement,
         append: 'last',
-        isolateEvents: true,
+        // Keep interactions with the menu from reaching page handlers that bubble.
+        isolateEvents: [
+          'keydown',
+          'keyup',
+          'keypress',
+          'pointerdown',
+          'pointerup',
+          'mousedown',
+          'mouseup',
+          'click',
+          'dblclick',
+          'auxclick',
+          'contextmenu',
+        ],
         onMount(container, _shadow, host) {
           // Inline !important beats page stylesheets, keeping the host out of page layout.
           for (const [property, value] of Object.entries({

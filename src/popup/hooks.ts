@@ -20,12 +20,15 @@ export function useSettings() {
     };
   }, []);
 
+  // Optimistic: controlled inputs reflect the change immediately, then storage confirms it.
   const update = useCallback(async (change: (current: Settings) => Settings) => {
+    setSettings((current) => (current ? change(current) : current));
     try {
       setSettings(await updateSettings(change));
       setError(null);
     } catch {
       setError('Could not save settings.');
+      setSettings(await loadSettings());
     }
   }, []);
 

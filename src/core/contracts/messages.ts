@@ -18,6 +18,8 @@ export type ContentScriptMessage = z.infer<typeof ContentScriptMessageSchema>;
 
 export const PingResponseSchema = z.object({
   ok: z.literal(true),
+  /** Settings and the Shadow DOM UI are loaded, so gestures will be handled. */
+  ready: z.boolean(),
   menuOpen: z.boolean(),
 });
 export type PingResponse = z.infer<typeof PingResponseSchema>;

@@ -26,6 +26,10 @@ export default defineBackground(() => {
     void onInstalled();
   });
 
+  browser.runtime.onStartup.addListener(() => {
+    void setActiveTaskBadge(0);
+  });
+
   browser.commands.onCommand.addListener((command, tab) => {
     if (command === OPEN_MENU_COMMAND && tab?.id !== undefined) void openMenuInTab(tab.id);
   });
