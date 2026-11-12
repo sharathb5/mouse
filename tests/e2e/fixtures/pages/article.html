@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>How Agents Read the Web</title>
+    <style>
+      body {
+        margin: 0;
+        font-family: Georgia, 'Times New Roman', serif;
+        color: #222;
+        background: #fafaf7;
+      }
+      nav {
+        display: flex;
+        gap: 24px;
+        padding: 14px 32px;
+        background: #1f2a44;
+        color: #fff;
+        font-family: system-ui, sans-serif;
+        font-size: 14px;
+      }
+      .layout {
+        display: grid;
+        grid-template-columns: 1fr 260px;
+        gap: 40px;
+        max-width: 1040px;
+        margin: 0 auto;
+        padding: 32px;
+      }
+      article h1 {
+        font-size: 34px;
+        line-height: 1.15;
+        margin: 0 0 8px;
+      }
+      .byline {
+        color: #666;
+        font-family: system-ui, sans-serif;
+        font-size: 13px;
+        margin-bottom: 24px;
+      }
+      article p {
+        font-size: 18px;
+        line-height: 1.6;
+      }
+      aside {
+        font-family: system-ui, sans-serif;
+        font-size: 14px;
+        color: #444;
+        border-left: 1px solid #ddd;
+        padding-left: 20px;
+      }
+      .ad {
+        margin-top: 20px;
+        padding: 24px;
+        background: #eee;
+        text-align: center;
+        color: #888;
+      }
+      table {
+        border-collapse: collapse;
+        font-family: system-ui, sans-serif;
+        font-size: 14px;
+        margin: 16px 0;
+      }
+      td,
+      th {
+        border: 1px solid #ccc;
+        padding: 6px 10px;
+      }
+      #fake-cursor {
+        position: fixed;
+        left: 0;
+        top: 0;
+        width: 18px;
+        height: 18px;
+        pointer-events: none;
+        z-index: 2147483646;
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <nav>
+      <strong>The Field Guide</strong><span>Tech</span><span>Science</span><span>Ideas</span>
+    </nav>
+    <div class="layout">
+      <article>
+        <h1>How Agents Read the Web</h1>
+        <div class="byline">By A. Writer · 6 min read</div>
+        <p id="intro">
+          Most of what we read online is surrounded by noise: navigation bars, sidebars, and
+          advertisements compete with the paragraph you actually care about. A good assistant has to
+          find the meaningful content first.
+        </p>
+        <p id="second">
+          Semantic selection means recognizing paragraphs, sections, tables, and articles as units,
+          then preserving their structure when the text is extracted. You can read more in the
+          <a id="docs-link" href="https://example.com/docs">extraction guide</a>.
+        </p>
+        <table id="specs">
+          <thead>
+            <tr>
+              <th>Model</th>
+              <th>Price</th>
+              <th>Rating</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Alpha</td>
+              <td>$129</td>
+              <td>4.5</td>
+            </tr>
+            <tr>
+              <td>Beta</td>
+              <td>$99</td>
+              <td>4.1</td>
+            </tr>
+          </tbody>
+        </table>
+        <p id="third">
+          The goal is to eliminate unnecessary steps between encountering something on the web and
+          doing something useful with it.
+        </p>
+      </article>
+      <aside>
+        <p>Related</p>
+        <ul>
+          <li>Browser extensions 101</li>
+          <li>Designing for speed</li>
+        </ul>
+        <div class="ad">Advertisement</div>
+      </aside>
+    </div>
+    <svg id="fake-cursor" viewBox="0 0 16 16" aria-hidden="true">
+      <path
+        d="M3 1.5v11.2l3-2.9 2 4.7 2-.9-2-4.6h4.2z"
+        fill="#111"
+        stroke="#fff"
+        stroke-width="1"
+      />
+    </svg>
+    <script>
+      // Test instrumentation in the page's main world. Bubble-phase listeners run after the
+      // extension's capture-phase listener, so they observe what the extension let through.
+      window.__pageEvents = { contextmenu: [], clicks: 0, keydowns: [] };
+      window.addEventListener('contextmenu', (e) => {
+        window.__pageEvents.contextmenu.push({
+          shiftKey: e.shiftKey,
+          defaultPrevented: e.defaultPrevented,
+        });
+      });
+      window.addEventListener('click', () => {
+        window.__pageEvents.clicks += 1;
+      });
+      window.addEventListener('keydown', (e) => {
+        window.__pageEvents.keydowns.push(e.key);
+      });
+      // Headless screenshots/videos do not draw the OS cursor; ?cursor=1 draws one for demos.
+      if (new URLSearchParams(location.search).has('cursor')) {
+        const cursor = document.getElementById('fake-cursor');
+        cursor.style.display = 'block';
+        window.addEventListener(
+          'mousemove',
+          (e) => {
+            cursor.style.transform = `translate(${e.clientX - 3}px, ${e.clientY - 1}px)`;
+          },
+          true,
+        );
+      }
+    </script>
+  </body>
+</html>

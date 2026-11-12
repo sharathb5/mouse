@@ -53,6 +53,20 @@ export default tseslint.config(
     rules: { 'no-restricted-imports': 'off' },
   },
   {
+    files: ['src/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-globals': [
+        'error',
+        { name: 'chrome', message: 'Use `browser` from wxt/browser so code stays testable.' },
+      ],
+    },
+  },
+  {
+    // Playwright fixtures call `use()`, which is not a React hook.
+    files: ['tests/**/*.ts'],
+    rules: { 'react-hooks/rules-of-hooks': 'off' },
+  },
+  {
     files: ['**/*.js', '**/*.mjs'],
     extends: [tseslint.configs.disableTypeChecked],
   },
