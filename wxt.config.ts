@@ -11,7 +11,11 @@ export default defineConfig({
     description: 'Right-click anything. Understand it, act on it, or delegate it.',
     // Keep permissions minimal. Host access comes only from the content script
     // match patterns (http/https pages), which the gesture listener requires.
-    permissions: ['storage'],
+    // alarms: poll Cursor Cloud Agent task status while the service worker sleeps.
+    // notifications: one completion/failure toast per task.
+    permissions: ['storage', 'alarms', 'notifications'],
+    // Requested at Cursor connect time from the popup — not granted up front.
+    optional_host_permissions: ['https://api.cursor.com/*'],
     action: {
       default_title: 'Agentic Mouse',
     },

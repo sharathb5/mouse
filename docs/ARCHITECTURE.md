@@ -37,8 +37,10 @@ flowchart LR
 | Positioning       | `src/content/positioning.ts`                   | Pure: viewport-aware placement (flip + clamp).                                       |
 | Invocation        | `src/content/invocation.ts`                    | Cheap snapshot of what was clicked (`MenuInvocation`). Seam for Workstream A.        |
 | Menu UI           | `src/content/menu/AgenticMenu.tsx`, `menu.css` | Renders resolved actions; keyboard nav; "coming soon" notices.                       |
-| Background        | `src/entrypoints/background.ts`                | Install defaults, badge, fallback shortcut → content script.                         |
-| Popup             | `src/entrypoints/popup/*`, `src/popup/*`       | Toggle, page status, Inbox (placeholder), pinned-action editor, behavior settings.   |
+| Background        | `src/entrypoints/background.ts`                | Install defaults, badge, task orchestration, Cursor polling, fallback shortcut.      |
+| Popup             | `src/entrypoints/popup/*`, `src/popup/*`       | Toggle, page status, Inbox (tasks + walking cat), Agents settings, pinned actions.   |
+| Tasks             | `src/core/tasks/*`, `src/background/tasks/*`   | Pure state machine + persisted TaskStore, alarms, completion notifications.          |
+| Destinations      | `src/background/destinations/*`                | Cursor Cloud Agent adapter, prefill-link, clipboard handoff.                         |
 | Contracts         | `src/core/contracts/*`                         | Zod schemas + inferred types for every cross-module data shape.                      |
 | Action registry   | `src/core/actions/*`                           | Catalog of action definitions; executors register to become available.               |
 | Platform adapters | `src/platform/*`                               | Thin wrappers over `browser.*` (settings storage, tab status, badge).                |
@@ -123,6 +125,9 @@ Variants use **discriminated unions** so consumers get exhaustive `switch` check
 | `ActionResult`          | `kind`        | inline-text / selection / table / comparison / handoff / tracking / unavailable.                        |
 | `ActionEvent`           | `type`        | Streamed executor events: progress / text-delta / task-created / result / error.                        |
 | `Settings`              | —             | `enabled`, `triggerMode`, `pinnedActionIds` (versioned; parsed defensively per field).                  |
+| `DestinationsConfig`    | —             | Destinations, saved actions, trusted rules (versioned; separate from credentials).                      |
+| `TaskEvent`             | `type`        | Pure state-machine inputs (`start`, `progress`, `complete`, …).                                         |
+| `BackgroundRequest`     | `type`        | Content/popup → background (task create, handoff, inbox commands, credential status).                   |
 | `ContentScriptMessage`  | `type`        | Extension-internal messages (`ping`, `open-menu`), validated on receipt.                                |
 
 Validation happens at trust boundaries: storage reads (`parseSettings`), incoming extension
@@ -171,13 +176,16 @@ one-line change once quota behavior is considered.
 
 ## Permissions
 
-| Permission / access               | Why                                                                                                                                                                                     |
-| --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `storage`                         | Persist settings.                                                                                                                                                                       |
-| Content script on `http(s)://*/*` | The Shift + right-click listener must already be present when the user right-clicks. `activeTab` + on-demand injection would require clicking the toolbar first, defeating the product. |
-| `commands`                        | Manifest key (no permission prompt) for the fallback shortcut.                                                                                                                          |
+| Permission / access                      | Why                                                                                                                                                                                     |
+| ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `storage`                                | Persist settings, destinations, tasks, and credentials (credentials never leave the background).                                                                                        |
+| `alarms`                                 | Poll Cursor Cloud Agent run status while the MV3 service worker is suspended.                                                                                                           |
+| `notifications`                          | One completion/failure notification per task.                                                                                                                                           |
+| Content script on `http(s)://*/*`        | The Shift + right-click listener must already be present when the user right-clicks. `activeTab` + on-demand injection would require clicking the toolbar first, defeating the product. |
+| `commands`                               | Manifest key (no permission prompt) for the fallback shortcut.                                                                                                                          |
+| Optional host `https://api.cursor.com/*` | Requested when the user saves a Cursor API key; used only by the background adapter.                                                                                                    |
 
-No `tabs`, `scripting`, `<all_urls>` host permission beyond the content script, or remote code.
+No `tabs` / `scripting` / `<all_urls>` host permission beyond the content script, and no remote code. The Cursor API key is stored under `local:credentials` and is never included in content-script-visible messages.
 
 ## Testing strategy
 

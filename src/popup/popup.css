@@ -198,9 +198,138 @@ button {
   font-size: 12px;
 }
 
-.cat {
+.inbox-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.inbox-item {
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+}
+
+.inbox-item-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 12px;
+}
+
+.inbox-status {
+  color: var(--muted);
+  text-transform: uppercase;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.inbox-update {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.inbox-update.error {
+  color: #b42318;
+}
+
+.inbox-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.inbox-controls button {
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  cursor: pointer;
+  font-size: 11px;
+}
+
+.cat-track {
+  position: relative;
+  height: 28px;
+  margin: 4px 0 2px;
   color: var(--fg);
-  opacity: 0.8;
+}
+
+.cat-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 4px;
+  height: 2px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--fg) 20%, transparent);
+}
+
+.cat-sprite {
+  position: absolute;
+  bottom: 0;
+  transform: translateX(-50%);
+  transition: left 200ms linear;
+}
+
+.cat-indeterminate .cat-sprite {
+  animation: cat-pace 1.6s ease-in-out infinite alternate;
+}
+
+.cat-sleeping .cat-sprite {
+  opacity: 0.85;
+}
+
+@keyframes cat-pace {
+  from {
+    left: 8%;
+  }
+  to {
+    left: 92%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cat-indeterminate .cat-sprite,
+  .cat-sprite {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+.destinations .stack {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.destinations .muted {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.destinations input[type='password'] {
+  width: 100%;
+  font: inherit;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--fg);
+}
+
+.ok {
+  color: var(--ok);
+  font-size: 12px;
 }
 
 .pill {

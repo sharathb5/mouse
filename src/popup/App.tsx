@@ -5,11 +5,13 @@ import { EnabledToggle } from './components/EnabledToggle';
 import { InboxPanel } from './components/InboxPanel';
 import { PinnedActionsPanel } from './components/PinnedActionsPanel';
 import { TabStatusBanner } from './components/TabStatusBanner';
+import { DestinationsPanel } from './destinations/DestinationsPanel';
 import { useSettings, useTabStatus } from './hooks';
 
 const TABS = [
   { id: 'inbox', label: 'Inbox' },
   { id: 'menu', label: 'Menu' },
+  { id: 'agents', label: 'Agents' },
   { id: 'settings', label: 'Settings' },
 ] as const;
 type TabId = (typeof TABS)[number]['id'];
@@ -81,6 +83,7 @@ export function App() {
             }
           />
         )}
+        {tab === 'agents' && <DestinationsPanel />}
         {tab === 'settings' && settings && (
           <BehaviorPanel
             triggerMode={settings.triggerMode}

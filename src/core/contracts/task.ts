@@ -76,14 +76,54 @@ export const TaskStateSchema = z.discriminatedUnion('status', [
 export type TaskState = z.infer<typeof TaskStateSchema>;
 export type TaskStatus = TaskState['status'];
 
+/** Provider-side identifiers for background-execution destinations (e.g. Cursor). */
+export const TaskExternalRefSchema = z.object({
+  id: z.string().min(1).max(200),
+  /** Cursor run id used for poll/cancel (`GET/POST .../runs/{runId}`). */
+  runId: z.string().min(1).max(200).optional(),
+  url: z.url().optional(),
+});
+export type TaskExternalRef = z.infer<typeof TaskExternalRefSchema>;
+
 export const TaskSchema = z.object({
   request: TaskRequestSchema,
   state: TaskStateSchema,
   updatedAt: z.iso.datetime(),
+  /** Short label for the inbox; never required for machine transitions. */
+  title: z.string().min(1).max(120).optional(),
+  external: TaskExternalRefSchema.optional(),
+  /** Ensures completion notifications fire at most once per task. */
+  completionNotified: z.boolean().optional(),
 });
 export type Task = z.infer<typeof TaskSchema>;
 
 /** Counted on the toolbar badge. */
 export function isActiveTask(state: TaskState): boolean {
   return state.status === 'queued' || state.status === 'running' || state.status === 'monitoring';
+}
+
+export const TASKS_STORAGE_VERSION = 1;
+
+export const TasksSnapshotSchema = z.object({
+  version: z.literal(TASKS_STORAGE_VERSION),
+  tasks: z.array(TaskSchema).max(200),
+});
+export type TasksSnapshot = z.infer<typeof TasksSnapshotSchema>;
+
+export function parseTasksSnapshot(raw: unknown): TasksSnapshot {
+  const full = TasksSnapshotSchema.safeParse(raw);
+  if (full.success) return full.data;
+  if (typeof raw !== 'object' || raw === null) {
+    return { version: TASKS_STORAGE_VERSION, tasks: [] };
+  }
+  const record = raw as Record<string, unknown>;
+  const tasks: Task[] = [];
+  if (Array.isArray(record.tasks)) {
+    for (const item of record.tasks) {
+      const parsed = TaskSchema.safeParse(item);
+      if (parsed.success) tasks.push(parsed.data);
+      if (tasks.length >= 200) break;
+    }
+  }
+  return { version: TASKS_STORAGE_VERSION, tasks };
 }
