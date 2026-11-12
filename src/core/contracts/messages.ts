@@ -155,10 +155,10 @@ export const BackgroundResponseSchema = z.discriminatedUnion('type', [
 export type BackgroundResponse = z.infer<typeof BackgroundResponseSchema>;
 
 /**
- * Popup/content → background one-shot messages for model settings and Track lifecycle.
+ * Popup → background messages for model provider settings.
  * Never carry API keys in responses to content scripts; only a configured flag.
  */
-export const BackgroundMessageSchema = z.discriminatedUnion('type', [
+export const ModelBackgroundMessageSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('agentic-mouse/model-settings') }),
   z.object({
     type: z.literal('agentic-mouse/set-model-api-key'),
@@ -168,6 +168,11 @@ export const BackgroundMessageSchema = z.discriminatedUnion('type', [
   z.object({
     type: z.literal('agentic-mouse/request-openrouter-permission'),
   }),
+]);
+export type ModelBackgroundMessage = z.infer<typeof ModelBackgroundMessageSchema>;
+
+/** Content → background messages for Track lifecycle (Workstream C). */
+export const TrackBackgroundMessageSchema = z.discriminatedUnion('type', [
   z.object({
     type: z.literal('agentic-mouse/track/start'),
     url: z.url(),
@@ -180,6 +185,13 @@ export const BackgroundMessageSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('agentic-mouse/track/cancel'), trackerId: z.string().min(1) }),
   z.object({ type: z.literal('agentic-mouse/track/check-now'), trackerId: z.string().min(1) }),
   z.object({ type: z.literal('agentic-mouse/track/list') }),
+]);
+export type TrackBackgroundMessage = z.infer<typeof TrackBackgroundMessageSchema>;
+
+/** Union of popup/content → background one-shot messages. */
+export const BackgroundMessageSchema = z.union([
+  ModelBackgroundMessageSchema,
+  TrackBackgroundMessageSchema,
 ]);
 export type BackgroundMessage = z.infer<typeof BackgroundMessageSchema>;
 

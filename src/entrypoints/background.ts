@@ -10,8 +10,8 @@ import {
 } from '@/background/tasks';
 import { startTrackingService } from '@/background/tracking';
 import {
-  BackgroundMessageSchema,
   DEFAULT_SETTINGS,
+  ModelBackgroundMessageSchema,
   OPEN_MENU_COMMAND,
   type ContentScriptMessage,
   type ModelProviderSettings,
@@ -20,13 +20,6 @@ import { setActiveTaskBadge } from '@/platform/badge';
 import { loadDestinationsConfig, saveDestinationsConfig } from '@/platform/destinations-store';
 import { clearModelApiKey, hasModelApiKey, saveModelApiKey } from '@/platform/model-secrets';
 import { loadSettings, saveSettings } from '@/platform/settings-store';
-
-const MODEL_MESSAGE_TYPES = new Set([
-  'agentic-mouse/model-settings',
-  'agentic-mouse/set-model-api-key',
-  'agentic-mouse/clear-model-api-key',
-  'agentic-mouse/request-openrouter-permission',
-]);
 
 const orchestrator = createTaskOrchestrator();
 
@@ -78,8 +71,8 @@ export default defineBackground(() => {
   browser.runtime.onMessage.addListener(createBackgroundMessageHandler(orchestrator));
 
   browser.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-    const parsed = BackgroundMessageSchema.safeParse(message);
-    if (!parsed.success || !MODEL_MESSAGE_TYPES.has(parsed.data.type)) return undefined;
+    const parsed = ModelBackgroundMessageSchema.safeParse(message);
+    if (!parsed.success) return undefined;
 
     void (async () => {
       switch (parsed.data.type) {

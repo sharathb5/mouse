@@ -1,8 +1,8 @@
 import { browser } from 'wxt/browser';
 import {
-  BackgroundMessageSchema,
-  type BackgroundMessage,
+  TrackBackgroundMessageSchema,
   type Task,
+  type TrackBackgroundMessage,
   type TrackMutationResponse,
   type TrackStartResponse,
   type Tracker,
@@ -14,15 +14,6 @@ import { nextCheckIso, runTrackerCheck } from './check';
 import { attachAlarmListener, clearTrackerSchedule, scheduleTracker } from './scheduler';
 import { createTrackerStore, type TrackerStore } from './tracker-store';
 
-const TRACK_MESSAGE_TYPES = new Set([
-  'agentic-mouse/track/start',
-  'agentic-mouse/track/pause',
-  'agentic-mouse/track/resume',
-  'agentic-mouse/track/cancel',
-  'agentic-mouse/track/check-now',
-  'agentic-mouse/track/list',
-]);
-
 function newId(prefix: string): string {
   return `${prefix}-${crypto.randomUUID()}`;
 }
@@ -32,7 +23,7 @@ async function refreshBadge(tasks: TaskStore): Promise<void> {
 }
 
 async function handleStart(
-  message: Extract<BackgroundMessage, { type: 'agentic-mouse/track/start' }>,
+  message: Extract<TrackBackgroundMessage, { type: 'agentic-mouse/track/start' }>,
   deps: { trackers: TrackerStore; tasks: TaskStore },
   sourceTabId?: number,
 ): Promise<TrackStartResponse> {
@@ -196,8 +187,8 @@ export function startTrackingService(
   (globalThis as TrackingGlobal).__agenticMouseTracking = api;
 
   browser.runtime.onMessage.addListener((message: unknown, sender, sendResponse) => {
-    const parsed = BackgroundMessageSchema.safeParse(message);
-    if (!parsed.success || !TRACK_MESSAGE_TYPES.has(parsed.data.type)) return undefined;
+    const parsed = TrackBackgroundMessageSchema.safeParse(message);
+    if (!parsed.success) return undefined;
 
     const respond = async () => {
       switch (parsed.data.type) {
