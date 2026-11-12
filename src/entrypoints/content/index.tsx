@@ -1,4 +1,5 @@
 import { defineContentScript } from 'wxt/utils/define-content-script';
+import { createConsumerActionRegistry } from '@/content/consumer/registry';
 import { createMenuController } from '@/content/menu-controller';
 import '@/actions/send-to-agent/send.css';
 import '@/content/menu/menu.css';
@@ -10,6 +11,6 @@ export default defineContentScript({
   runAt: 'document_idle',
   cssInjectionMode: 'ui',
   async main(ctx) {
-    await createMenuController(ctx).start();
+    await createMenuController(ctx, createConsumerActionRegistry()).start();
   },
 });

@@ -176,17 +176,18 @@ one-line change once quota behavior is considered.
 
 ## Permissions
 
-| Permission / access                      | Why                                                                                                                                                                                     |
-| ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `storage`                                | Persist settings, destinations, tasks, and credentials (credentials never leave the background). Model API keys are stored separately from Cursor credentials.                          |
-| `alarms`                                 | Poll Cursor Cloud Agent run status while the MV3 service worker is suspended.                                                                                                           |
-| `notifications`                          | One completion/failure notification per task.                                                                                                                                           |
-| Content script on `http(s)://*/*`        | The Shift + right-click listener must already be present when the user right-clicks. `activeTab` + on-demand injection would require clicking the toolbar first, defeating the product. |
-| `commands`                               | Manifest key (no permission prompt) for the fallback shortcut.                                                                                                                          |
-| Optional host `https://api.cursor.com/*` | Requested when the user saves a Cursor API key; used only by the background adapter.                                                                                                    |
-| Optional `https://openrouter.ai/*`       | Requested only when the user configures OpenRouter for inline AI. Used solely by the background service worker.                                                                         |
+| Permission / access                       | Why                                                                                                                                                                                     |
+| ----------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `storage`                                 | Persist settings, destinations, tasks/trackers, and credentials (credentials never leave the background). Model API keys are stored separately from Cursor credentials.                 |
+| `alarms`                                  | Poll Cursor Cloud Agent run status while the MV3 service worker is suspended, and schedule Workstream C Track checks.                                                                   |
+| `notifications`                           | One completion/failure notification per agent task, plus Track condition-met alerts (honors notification preferences).                                                                  |
+| Content script on `http(s)://*/*`         | The Shift + right-click listener must already be present when the user right-clicks. `activeTab` + on-demand injection would require clicking the toolbar first, defeating the product. |
+| `commands`                                | Manifest key (no permission prompt) for the fallback shortcut.                                                                                                                          |
+| Optional host `https://api.cursor.com/*`  | Requested when the user saves a Cursor API key; used only by the background adapter.                                                                                                    |
+| Optional `https://openrouter.ai/*`        | Requested only when the user configures OpenRouter for inline AI. Used solely by the background service worker.                                                                         |
+| `optional_host_permissions` http(s)://_/_ | Requested per tracked origin at Track start so the service worker can fetch the page when no tab is open. Open-tab checks use the content script and need no extra host access.         |
 
-No `tabs` / `scripting` / `<all_urls>` host permission beyond the content script, and no remote code.
+No `tabs` / `scripting` / broad required host permission beyond the content script, and no remote code.
 API keys never leave background/storage; content scripts receive only `apiKeyConfigured` / destination status flags.
 
 ## Testing strategy

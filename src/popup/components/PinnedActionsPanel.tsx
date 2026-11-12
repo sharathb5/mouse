@@ -2,15 +2,16 @@ import {
   ACTION_CATALOG,
   addPinnedAction,
   canPinMore,
-  createActionRegistry,
   movePinnedAction,
   removePinnedAction,
   resetPinnedActions,
   unpinnedActions,
 } from '@/core/actions';
+import { createConsumerActionRegistry } from '@/actions/register-consumer';
 import { MAX_PINNED_ACTIONS, type ActionId } from '@/core/contracts';
 
-const registry = createActionRegistry();
+// Same executors as the content script so "Soon" badges match real availability.
+const registry = createConsumerActionRegistry();
 
 export function PinnedActionsPanel({
   pinned,
@@ -95,7 +96,10 @@ export function PinnedActionsPanel({
       <button type="button" className="link-btn" onClick={() => onChange(resetPinnedActions())}>
         Reset to defaults
       </button>
-      <p className="footnote">Actions marked “Soon” are placeholders and do not run yet.</p>
+      <p className="footnote">
+        Actions marked “Soon” are placeholders and do not run yet. Extract, Compare, and Track run
+        locally from the page menu.
+      </p>
     </div>
   );
 }

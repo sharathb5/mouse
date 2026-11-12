@@ -16,14 +16,19 @@ import { createActionRegistry, type ActionRegistry, type ResolvedAction } from '
 import {
   ContentScriptMessageSchema,
   type ActionId,
+  type ExtractSnapshotResponse,
   type OpenMenuResponse,
   type PingResponse,
   type SelectedContext,
   type Settings,
 } from '@/core/contracts';
 import { createMetricsRecorder } from '@/core/metrics';
+import { snapshotFromDocument } from '@/core/tracking';
 import { loadSettings, watchSettings } from '@/platform/settings-store';
 import { runActionInBackground } from './action-client';
+import { buildPageSelectedContext } from './consumer/context';
+import { createResultHost, type ResultHost } from './consumer/result-host';
+import { runRegisteredAction } from './consumer/run-action';
 import { decideContextMenu } from './gesture';
 import { createHighlightOverlay, type HighlightOverlay } from './highlight';
 import { detectQuickTargetKind, shortcutAnchor, type MenuInvocation } from './invocation';
@@ -79,6 +84,7 @@ export function createMenuController(
   registry: ActionRegistry = createContentRegistry(),
 ): MenuController {
   const metrics = createMetricsRecorder();
+  const results: ResultHost = createResultHost();
   let settings: Settings | null = null;
   let ui: ShadowRootContentScriptUi<Root> | null = null;
   let open: OpenState | null = null;
@@ -88,6 +94,7 @@ export function createMenuController(
   let selectionChrome: SelectionChromeController | null = null;
   let selectionSession: SelectionSession | null = null;
   let activeRun: { abort: () => void } | null = null;
+  let actionAbort: AbortController | null = null;
 
   const isReady = () => settings !== null && ui !== null;
 
@@ -218,6 +225,34 @@ export function createMenuController(
 
     const invocation = open.invocation;
     const actionId = entry.definition.id;
+
+    // Workstream C consumer actions (Extract / Compare / Track) run through registered executors.
+    if (actionId === 'extract' || actionId === 'compare' || actionId === 'track') {
+      const executor = registry.getExecutor(actionId);
+      if (!executor) return;
+      close('tab');
+      actionAbort?.abort();
+      actionAbort = new AbortController();
+      const signal = actionAbort.signal;
+      const outcome = await runRegisteredAction(
+        entry,
+        executor,
+        buildPageSelectedContext(),
+        signal,
+      );
+      if (signal.aborted) return;
+      if (outcome.result) {
+        results.show(outcome.result);
+        return;
+      }
+      results.show({
+        kind: 'unavailable',
+        actionId,
+        reason: outcome.errorMessage ?? 'Action failed',
+      });
+      return;
+    }
+
     close('tab');
     ensureUiHelpers();
 
@@ -424,7 +459,7 @@ export function createMenuController(
   function onMessage(
     message: unknown,
     _sender: Browser.runtime.MessageSender,
-    sendResponse: (response: PingResponse | OpenMenuResponse) => void,
+    sendResponse: (response: PingResponse | OpenMenuResponse | ExtractSnapshotResponse) => void,
   ): boolean | undefined {
     const parsed = ContentScriptMessageSchema.safeParse(message);
     if (!parsed.success) return undefined;
@@ -447,6 +482,15 @@ export function createMenuController(
         sendResponse({ opened: canOpen });
         return undefined;
       }
+      case 'agentic-mouse/extract-snapshot': {
+        const snapshot = snapshotFromDocument(document, location.href);
+        sendResponse(
+          snapshot
+            ? { ok: true, snapshot }
+            : { ok: false, reason: 'No trackable data on this page' },
+        );
+        return undefined;
+      }
     }
   }
 
@@ -463,6 +507,8 @@ export function createMenuController(
           endSelectionSession();
           panel?.close();
           activeRun?.abort();
+          actionAbort?.abort();
+          results.hide();
         } else render();
       });
       ctx.onInvalidated(() => {
@@ -472,6 +518,8 @@ export function createMenuController(
         endSelectionSession();
         panel?.close();
         activeRun?.abort();
+        actionAbort?.abort();
+        results.hide();
       });
 
       ui = await createShadowRootUi<Root>(ctx, {

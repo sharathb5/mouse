@@ -8,6 +8,7 @@ import {
   createTaskOrchestrator,
   TASK_POLL_ALARM,
 } from '@/background/tasks';
+import { startTrackingService } from '@/background/tracking';
 import {
   BackgroundMessageSchema,
   DEFAULT_SETTINGS,
@@ -19,6 +20,13 @@ import { setActiveTaskBadge } from '@/platform/badge';
 import { loadDestinationsConfig, saveDestinationsConfig } from '@/platform/destinations-store';
 import { clearModelApiKey, hasModelApiKey, saveModelApiKey } from '@/platform/model-secrets';
 import { loadSettings, saveSettings } from '@/platform/settings-store';
+
+const MODEL_MESSAGE_TYPES = new Set([
+  'agentic-mouse/model-settings',
+  'agentic-mouse/set-model-api-key',
+  'agentic-mouse/clear-model-api-key',
+  'agentic-mouse/request-openrouter-permission',
+]);
 
 const orchestrator = createTaskOrchestrator();
 
@@ -57,6 +65,7 @@ async function modelSettingsResponse(): Promise<ModelProviderSettings> {
 
 export default defineBackground(() => {
   registerActionRunPort();
+  startTrackingService();
 
   browser.runtime.onInstalled.addListener(() => {
     void onInstalled();
@@ -70,7 +79,7 @@ export default defineBackground(() => {
 
   browser.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     const parsed = BackgroundMessageSchema.safeParse(message);
-    if (!parsed.success) return undefined;
+    if (!parsed.success || !MODEL_MESSAGE_TYPES.has(parsed.data.type)) return undefined;
 
     void (async () => {
       switch (parsed.data.type) {

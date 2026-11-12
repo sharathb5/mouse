@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Fixture Listings — Apartments</title>
+  </head>
+  <body>
+    <h1>Apartment listings</h1>
+    <article itemscope itemtype="https://schema.org/Apartment" id="apt-a">
+      <h2 itemprop="name">Sunlit Studio on Pine</h2>
+      <meta itemprop="url" content="http://127.0.0.1:4321/apartments.html#apt-a" />
+      <span itemprop="numberOfBedrooms">0</span> bed /
+      <span itemprop="numberOfBathroomsTotal">1</span> bath
+      <div itemprop="offers" itemscope itemtype="https://schema.org/Offer">
+        $<span itemprop="price">1850</span>
+        <meta itemprop="priceCurrency" content="USD" />
+      </div>
+      <span itemprop="address">Portland</span>
+    </article>
+    <article itemscope itemtype="https://schema.org/Apartment" id="apt-b">
+      <h2 itemprop="name">River Loft</h2>
+      <meta itemprop="url" content="http://127.0.0.1:4321/apartments.html#apt-b" />
+      <span itemprop="numberOfBedrooms">2</span> bed /
+      <span itemprop="numberOfBathroomsTotal">2</span> bath
+      <div itemprop="offers" itemscope itemtype="https://schema.org/Offer">
+        $<span itemprop="price">2750</span>
+        <meta itemprop="priceCurrency" content="USD" />
+      </div>
+      <span itemprop="address">Portland</span>
+    </article>
+    <script>
+      window.__pageEvents = { contextmenu: [], clicks: 0, keydowns: [] };
+      document.addEventListener(
+        'contextmenu',
+        (event) => {
+          window.__pageEvents.contextmenu.push({
+            shiftKey: event.shiftKey,
+            defaultPrevented: event.defaultPrevented,
+          });
+        },
+        true,
+      );
+    </script>
+  </body>
+</html>

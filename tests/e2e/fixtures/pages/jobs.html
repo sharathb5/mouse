@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Fixture Board — Jobs</title>
+    <script type="application/ld+json">
+      [
+        {
+          "@context": "https://schema.org",
+          "@type": "JobPosting",
+          "title": "Frontend Engineer",
+          "hiringOrganization": { "@type": "Organization", "name": "Northbeam" },
+          "jobLocation": {
+            "@type": "Place",
+            "address": { "@type": "PostalAddress", "addressLocality": "Remote" }
+          },
+          "employmentType": "FULL_TIME",
+          "baseSalary": {
+            "@type": "MonetaryAmount",
+            "currency": "USD",
+            "value": { "@type": "QuantitativeValue", "value": 145000 }
+          },
+          "url": "http://127.0.0.1:4321/jobs.html#fe"
+        },
+        {
+          "@context": "https://schema.org",
+          "@type": "JobPosting",
+          "title": "Site Reliability Engineer",
+          "hiringOrganization": { "@type": "Organization", "name": "Harbor Labs" },
+          "jobLocation": {
+            "@type": "Place",
+            "address": { "@type": "PostalAddress", "addressLocality": "Seattle" }
+          },
+          "employmentType": "FULL_TIME",
+          "baseSalary": {
+            "@type": "MonetaryAmount",
+            "currency": "USD",
+            "value": { "@type": "QuantitativeValue", "value": 160000 }
+          },
+          "url": "http://127.0.0.1:4321/jobs.html#sre"
+        }
+      ]
+    </script>
+  </head>
+  <body>
+    <h1>Job board</h1>
+    <article id="fe"><h2>Frontend Engineer</h2></article>
+    <article id="sre"><h2>Site Reliability Engineer</h2></article>
+    <script>
+      window.__pageEvents = { contextmenu: [], clicks: 0, keydowns: [] };
+    </script>
+  </body>
+</html>
