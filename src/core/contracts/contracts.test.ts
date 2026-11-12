@@ -326,4 +326,54 @@ describe('BackgroundMessageSchema', () => {
       true,
     );
   });
+
+  it('accepts alternatives ranking and sheets messages', () => {
+    expect(
+      BackgroundMessageSchema.safeParse({
+        type: 'agentic-mouse/alternatives/rank-links',
+        seed: { name: 'Lamp', kind: 'product', fields: { price: 10 } },
+        links: [{ url: 'http://127.0.0.1:4321/b', text: 'Stand' }],
+      }).success,
+    ).toBe(true);
+    expect(BackgroundMessageSchema.safeParse({ type: 'agentic-mouse/sheets/status' }).success).toBe(
+      true,
+    );
+    expect(
+      BackgroundMessageSchema.safeParse({
+        type: 'agentic-mouse/sheets/export',
+        table: {
+          columns: [{ key: 'name', label: 'Name', type: 'text' }],
+          rows: [{ name: 'Lamp' }],
+          sources: ['http://127.0.0.1:4321/products.html'],
+        },
+      }).success,
+    ).toBe(true);
+  });
+});
+
+describe('ActionResult notice fields', () => {
+  it('allows optional honest notices on table and comparison results', () => {
+    expect(
+      ActionResultSchema.safeParse({
+        kind: 'table',
+        columns: [{ key: 'name', label: 'Name', type: 'text' }],
+        rows: [{ name: 'Lamp' }],
+        sources: ['http://127.0.0.1:4321/products.html'],
+        notice: 'Google Sheets is not connected.',
+      }).success,
+    ).toBe(true);
+    expect(
+      ActionResultSchema.safeParse({
+        kind: 'comparison',
+        attributes: [{ key: 'price', label: 'Price', type: 'currency' }],
+        items: [
+          { name: 'A', url: 'https://example.com/a', values: { price: 1 } },
+          { name: 'B', url: 'https://example.com/b', values: { price: 2 } },
+        ],
+        summary: 'Compared 2 items.',
+        sources: ['https://example.com/a'],
+        notice: 'OpenRouter is not configured.',
+      }).success,
+    ).toBe(true);
+  });
 });

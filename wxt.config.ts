@@ -13,12 +13,16 @@ export default defineConfig({
     // match patterns (http/https pages), which the gesture listener requires.
     // alarms: Cursor Cloud Agent polling + Workstream C Track scheduler.
     // notifications: task completion/failure + Track condition-met alerts.
-    permissions: ['storage', 'alarms', 'notifications'],
+    // identity: optional Google Sheets OAuth via chrome.identity.launchWebAuthFlow.
+    permissions: ['storage', 'alarms', 'notifications', 'identity'],
     // Requested at connect/configure/track time from the popup or Track start — not up front.
     // http(s)://*/* optional hosts: per tracked origin for offline Track checks.
+    // sheets.googleapis.com + accounts.google.com: optional Google Sheets export.
     optional_host_permissions: [
       'https://api.cursor.com/*',
       'https://openrouter.ai/*',
+      'https://sheets.googleapis.com/*',
+      'https://accounts.google.com/*',
       'http://*/*',
       'https://*/*',
     ],
