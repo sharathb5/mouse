@@ -84,8 +84,7 @@ test.describe('context menu gesture', () => {
     // Default pins are all implemented after Workstreams A+B; pin Compare (still C) instead.
     await serviceWorker.evaluate(async () => {
       const current = (await chrome.storage.local.get('settings')).settings as
-        | Record<string, unknown>
-        | undefined;
+        Record<string, unknown> | undefined;
       await chrome.storage.local.set({
         settings: {
           ...current,
