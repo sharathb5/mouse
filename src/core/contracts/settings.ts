@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { ActionIdSchema, type ActionId } from './action';
+import { DEFAULT_MODEL_PREFERENCES, ModelPreferencesSchema, type ModelPreferences } from './model';
 
 export const SETTINGS_VERSION = 1;
 export const MAX_PINNED_ACTIONS = 8;
@@ -27,6 +28,8 @@ export const SettingsSchema = z.object({
   enabled: z.boolean(),
   triggerMode: TriggerModeSchema,
   pinnedActionIds: PinnedActionsSchema,
+  /** Non-secret model preferences. API keys live in a separate storage item. */
+  model: ModelPreferencesSchema,
 });
 export type Settings = z.infer<typeof SettingsSchema>;
 
@@ -35,6 +38,7 @@ export const DEFAULT_SETTINGS: Settings = {
   enabled: true,
   triggerMode: 'shift-right-click',
   pinnedActionIds: [...DEFAULT_PINNED_ACTIONS],
+  model: { ...DEFAULT_MODEL_PREFERENCES },
 };
 
 /** Drops unknown and duplicate ids, preserving order, and caps the list length. */
@@ -47,6 +51,19 @@ export function normalizePinnedActionIds(raw: unknown): ActionId[] {
     if (seen.size === MAX_PINNED_ACTIONS) break;
   }
   return [...seen];
+}
+
+function parseModelPreferences(raw: unknown): ModelPreferences {
+  const parsed = ModelPreferencesSchema.safeParse(raw);
+  if (parsed.success) return parsed.data;
+  if (typeof raw !== 'object' || raw === null) return { ...DEFAULT_MODEL_PREFERENCES };
+  const record = raw as Record<string, unknown>;
+  const providerId = ModelPreferencesSchema.shape.providerId.safeParse(record.providerId);
+  const modelId = ModelPreferencesSchema.shape.modelId.safeParse(record.modelId);
+  return {
+    providerId: providerId.success ? providerId.data : DEFAULT_MODEL_PREFERENCES.providerId,
+    modelId: modelId.success ? modelId.data : DEFAULT_MODEL_PREFERENCES.modelId,
+  };
 }
 
 /**
@@ -70,5 +87,6 @@ export function parseSettings(raw: unknown): Settings {
       record.pinnedActionIds === undefined
         ? [...DEFAULT_PINNED_ACTIONS]
         : normalizePinnedActionIds(record.pinnedActionIds),
+    model: parseModelPreferences(record.model),
   };
 }

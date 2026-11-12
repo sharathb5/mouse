@@ -5,6 +5,7 @@ export * from './destination';
 export * from './destinations-config';
 export * from './execution';
 export * from './messages';
+export * from './model';
 export * from './result';
 export * from './settings';
 export * from './task';
